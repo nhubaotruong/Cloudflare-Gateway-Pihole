@@ -46,10 +46,12 @@ class App:
             cloudflare.delete_list(l["name"], l["id"])
 
         cf_lists = []
+        cf_lists_counter = 0
 
         # chunk the domains into lists of 1000 and create them
         for chunk in self.chunk_list(domains, 1000):
-            list_name = f"{self.name_prefix} {len(cf_lists) + 1}"
+            cf_lists_counter += 1
+            list_name = f"{self.name_prefix} {cf_lists_counter}"
             logging.info(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
             cf_lists.append(_list)

@@ -123,11 +123,8 @@ class App:
             else:
                 domain = line.strip()
 
-            if domain == "#":
-                continue
-
-            if domain == "<a":
-                continue
+            # if any([domain == x for x in ("#", "<a", "[")]):
+            #     continue
 
             if ip_v4_address_regex.match(domain):
                 continue

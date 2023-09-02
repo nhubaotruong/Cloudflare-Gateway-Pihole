@@ -16,20 +16,20 @@ session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
 
 
 def get_lists(name_prefix: str):
-    r = session.get(
+    resp = session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
+    if resp.status_code != 200:
+        raise Exception(resp.text)
 
-    lists = r.json()["result"] or []
+    lists = resp.json()["result"] or []
 
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
 def create_list(name: str, domains: list[str]):
-    r = session.post(
+    resp = session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
         json={
             "name": name,
@@ -39,36 +39,37 @@ def create_list(name: str, domains: list[str]):
         },
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
+    if resp.status_code != 200:
+        # raise Exception(resp.text)
+        return
 
-    return r.json()["result"]
+    return resp.json()["result"]
 
 
 def delete_list(name: str, list_id: str):
-    r = session.delete(
+    resp = session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists/{list_id}",
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
+    if resp.status_code != 200:
+        raise Exception(resp.text)
 
-    return r.json()["result"]
+    return resp.json()["result"]
 
 
 def get_firewall_policies(name_prefix: str):
-    r = session.get(
+    resp = session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
-    lists = r.json()["result"] or []
+    if resp.status_code != 200:
+        raise Exception(resp.text)
+    lists = resp.json()["result"] or []
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
 def create_gateway_policy(name: str, list_ids: list[str]):
-    r = session.post(
+    resp = session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
         json={
             "name": name,
@@ -83,13 +84,13 @@ def create_gateway_policy(name: str, list_ids: list[str]):
         },
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
-    return r.json()["result"]
+    if resp.status_code != 200:
+        raise Exception(resp.text)
+    return resp.json()["result"]
 
 
 def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
-    r = session.put(
+    resp = session.put(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
         json={
             "name": name,
@@ -99,20 +100,20 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
         },
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
-    return r.json()["result"]
+    if resp.status_code != 200:
+        raise Exception(resp.text)
+    return resp.json()["result"]
 
 
 def delete_gateway_policy(policy_name_prefix: str):
-    r = session.get(
+    resp = session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
+    if resp.status_code != 200:
+        raise Exception(resp.text)
 
-    policies = r.json()["result"] or []
+    policies = resp.json()["result"] or []
     policy_to_delete = next(
         (p for p in policies if p["name"].startswith(policy_name_prefix)), None
     )
@@ -122,10 +123,10 @@ def delete_gateway_policy(policy_name_prefix: str):
 
     policy_id = policy_to_delete["id"]
 
-    r = session.delete(
+    resp = session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
     )
 
-    if r.status_code != 200:
-        raise Exception(r.text)
+    if resp.status_code != 200:
+        raise Exception(resp.text)
     return 1

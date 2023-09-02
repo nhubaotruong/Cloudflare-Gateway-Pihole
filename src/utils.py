@@ -52,7 +52,8 @@ class App:
             list_name = f"{self.name_prefix} {len(cf_lists) + 1}"
             logging.info(f"Creating list {list_name}")
             _list = cloudflare.create_list(list_name, chunk)
-            cf_lists.append(_list)
+            if _list:
+                cf_lists.append(_list)
 
         # get the gateway policies
         cf_policies = cloudflare.get_firewall_policies(self.name_prefix)

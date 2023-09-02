@@ -123,8 +123,11 @@ class App:
             else:
                 domain = line.strip()
 
-            # if any([domain == x for x in ("#", "<a", "[")]):
-            #     continue
+            if any([domain == x for x in ("#", "<a", "[")]):
+                continue
+
+            if "," in domain:
+                continue
 
             if ip_v4_address_regex.match(domain):
                 continue
@@ -155,3 +158,11 @@ class App:
             cloudflare.delete_list(l["name"], l["id"])
 
         logging.info("Deletion completed")
+
+    def write_list(self):
+        file_content = ""
+        for url in self.adlist_urls:
+            file_content += self.download_file(url)
+        domains = self.convert_to_domain_list(file_content)
+        with open("domains.txt", "w") as file:
+            file.write("\n".join(domains))

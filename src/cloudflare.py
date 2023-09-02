@@ -1,6 +1,5 @@
 import requests
 import os
-import dotenv
 
 from typing import List
 from dotenv import load_dotenv
@@ -104,8 +103,9 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: List[str]):
     if r.status_code != 200:
         raise Exception(r.text)
     return r.json()["result"]
+
+
 def delete_gateway_policy(policy_name_prefix: str):
-    
     r = session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
     )
@@ -114,7 +114,9 @@ def delete_gateway_policy(policy_name_prefix: str):
         raise Exception(r.text)
 
     policies = r.json()["result"] or []
-    policy_to_delete = next((p for p in policies if p["name"].startswith(policy_name_prefix)), None)
+    policy_to_delete = next(
+        (p for p in policies if p["name"].startswith(policy_name_prefix)), None
+    )
 
     if not policy_to_delete:
         return 0

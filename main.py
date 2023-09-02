@@ -1,5 +1,6 @@
 import logging
 import requests
+import traceback
 
 from typing import List
 from src import cloudflare
@@ -23,4 +24,8 @@ if __name__ == "__main__":
     adlist_urls = read_lists_ini()
     adlist_name = "DNS Block List"
     app = App(adlist_name, adlist_urls)
-    app.run()
+    try:
+        app.run()
+    except Exception:
+        traceback.print_exc()
+        exit(1)

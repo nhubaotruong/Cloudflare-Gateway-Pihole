@@ -23,7 +23,7 @@ def get_lists(name_prefix: str):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to get Cloudflare lists")
+        raise Exception(r.text)
 
     lists = r.json()["result"] or []
 
@@ -42,7 +42,7 @@ def create_list(name: str, domains: List[str]):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to create Cloudflare list")
+        raise Exception(r.text)
 
     return r.json()["result"]
 
@@ -53,7 +53,7 @@ def delete_list(name: str, list_id: str):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to delete Cloudflare list")
+        raise Exception(r.text")
 
     return r.json()["result"]
 
@@ -64,7 +64,7 @@ def get_firewall_policies(name_prefix: str):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to get Cloudflare firewall policies")
+        raise Exception(r.text)
     lists = r.json()["result"] or []
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
@@ -86,7 +86,7 @@ def create_gateway_policy(name: str, list_ids: List[str]):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to create Cloudflare firewall policy")
+        raise Exception(r.text)
     return r.json()["result"]
 
 
@@ -102,7 +102,7 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: List[str]):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to update Cloudflare firewall policy")
+        raise Exception(r.text)
     return r.json()["result"]
 def delete_gateway_policy(policy_name_prefix: str):
     
@@ -111,7 +111,7 @@ def delete_gateway_policy(policy_name_prefix: str):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to get Cloudflare firewall policies")
+        raise Exception(r.text)
 
     policies = r.json()["result"] or []
     policy_to_delete = next((p for p in policies if p["name"].startswith(policy_name_prefix)), None)
@@ -126,5 +126,5 @@ def delete_gateway_policy(policy_name_prefix: str):
     )
 
     if r.status_code != 200:
-        raise Exception("Failed to delete Cloudflare gateway firewall policy")
+        raise Exception(r.text)
     return 1

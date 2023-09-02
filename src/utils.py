@@ -126,6 +126,9 @@ class App:
             if any([domain == x for x in ("#", "<a", "[")]):
                 continue
 
+            if domain.startswith("name="):
+                continue
+
             if "," in domain:
                 continue
 

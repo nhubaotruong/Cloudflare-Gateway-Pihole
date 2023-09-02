@@ -23,3 +23,4 @@ if __name__ == "__main__":
     adlist_urls = read_lists_ini()
     adlist_name = "DNS Block List"
     app = App(adlist_name, adlist_urls)
+    app.run()

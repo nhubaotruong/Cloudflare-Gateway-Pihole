@@ -1,8 +1,8 @@
 import logging
 import traceback
 
-from src.utils import App
 from src.colorlogs import ColoredLevelFormatter
+from src.utils import App
 
 logging.getLogger().setLevel(logging.INFO)
 formatter = ColoredLevelFormatter("%(levelname)s: %(message)s")

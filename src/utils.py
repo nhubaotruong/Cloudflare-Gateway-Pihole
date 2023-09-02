@@ -1,7 +1,16 @@
 import logging
+import re
+
 import requests
 
 from src import cloudflare
+
+
+ip_v4_address_regex = re.compile(
+    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?["
+    r"0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|["
+    r"01]?[0-9][0-9]?)$"
+)
 
 
 class App:
@@ -115,6 +124,9 @@ class App:
                 domain = line.strip()
 
             if domain == "#":
+                continue
+
+            if ip_v4_address_regex.match(domain):
                 continue
 
             domains.append(domain)

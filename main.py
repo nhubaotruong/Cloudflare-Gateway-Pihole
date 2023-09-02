@@ -4,7 +4,6 @@ import requests
 from typing import List
 from src import cloudflare
 from src.utils import App
-from configparser import ConfigParser
 from src.colorlogs import ColoredLevelFormatter
 
 logging.getLogger().setLevel(logging.INFO)
@@ -15,17 +14,8 @@ logger = logging.getLogger()
 logger.addHandler(console)
 
 def read_lists_ini():
-    adlist_urls = []
-    config = ConfigParser()
-
-    try:
-        config.read("lists.ini")
-        for section in config.sections():
-            for key in config.options(section):
-                adlist_urls.append(config.get(section, key))
-    except: 
-        with open("lists.ini", "r") as file:
-            adlist_urls = [url.strip() for url in file if url.strip()]
+    with open("lists.txt", "r") as file:
+        adlist_urls = [url.strip() for url in file if url.strip()]
     
     return adlist_urls
 

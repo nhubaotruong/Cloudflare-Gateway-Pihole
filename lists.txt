@@ -37,3 +37,6 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Samsung-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Spotify-AdBlock.txt
 https://phishing.army/download/phishing_army_blocklist.txt
+https://raw.githubusercontent.com/mullvad/dns-blocklists/main/output/doh/doh_adblock.txt
+https://raw.githubusercontent.com/mullvad/dns-blocklists/main/output/doh/doh_gambling.txt
+https://raw.githubusercontent.com/mullvad/dns-blocklists/main/output/doh/doh_privacy.txt

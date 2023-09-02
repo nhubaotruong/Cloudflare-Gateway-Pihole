@@ -53,7 +53,7 @@ def delete_list(name: str, list_id: str):
     )
 
     if r.status_code != 200:
-        raise Exception(r.text")
+        raise Exception(r.text)
 
     return r.json()["result"]
 

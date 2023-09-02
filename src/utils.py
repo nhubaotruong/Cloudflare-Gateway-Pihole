@@ -107,12 +107,15 @@ class App:
                 parts = line.split()
                 if len(parts) < 2:
                     continue
-                domain = parts[1].rstrip()
+                domain = parts[1].strip()
                 # skip the localhost entry
                 if domain == "localhost":
                     continue
             else:
-                domain = line.rstrip()
+                domain = line.strip()
+
+            if domain == "#":
+                continue
 
             domains.append(domain)
 

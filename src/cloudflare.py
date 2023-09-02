@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 import requests
 from dotenv import load_dotenv
@@ -29,14 +28,14 @@ def get_lists(name_prefix: str):
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
-def create_list(name: str, domains: List[str]):
+def create_list(name: str, domains: list[str]):
     r = session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
         json={
             "name": name,
             "description": "Created by script.",
             "type": "DOMAIN",
-            "items": [*map(lambda d: {"value": d}, domains)],
+            "items": [{"value": d} for d in domains],
         },
     )
 
@@ -68,7 +67,7 @@ def get_firewall_policies(name_prefix: str):
     return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
-def create_gateway_policy(name: str, list_ids: List[str]):
+def create_gateway_policy(name: str, list_ids: list[str]):
     r = session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
         json={
@@ -89,7 +88,7 @@ def create_gateway_policy(name: str, list_ids: List[str]):
     return r.json()["result"]
 
 
-def update_gateway_policy(name: str, policy_id: str, list_ids: List[str]):
+def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
     r = session.put(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
         json={

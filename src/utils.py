@@ -126,6 +126,9 @@ class App:
             if domain == "#":
                 continue
 
+            if domain == "<a":
+                continue
+
             if ip_v4_address_regex.match(domain):
                 continue
 

@@ -2,15 +2,23 @@ import logging
 import re
 
 import requests
+from requests.adapters import HTTPAdapter
 
 from src import cloudflare
-
 
 ip_v4_address_regex = re.compile(
     r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?["
     r"0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|["
     r"01]?[0-9][0-9]?)$"
 )
+
+valid_domain_regex = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}")
+
+
+# Create session with 3 retries
+list_download_session = requests.Session()
+list_download_session.mount("http://", HTTPAdapter(max_retries=3))
+list_download_session.mount("https://", HTTPAdapter(max_retries=3))
 
 
 class App:
@@ -83,7 +91,7 @@ class App:
 
     def download_file(self, url: str):
         logging.info(f"Downloading file from {url}")
-        r = requests.get(url, allow_redirects=True)
+        r = list_download_session.get(url, allow_redirects=True)
         logging.info(f"File size: {len(r.content)}")
         return r.content.decode("utf-8")
 
@@ -124,16 +132,7 @@ class App:
             else:
                 domain = line.strip()
 
-            if any([domain == x for x in ("#", "<a", "[")]):
-                continue
-
-            if domain.startswith("name="):
-                continue
-
-            if "," in domain:
-                continue
-
-            if ip_v4_address_regex.match(domain):
+            if not valid_domain_regex.match(domain):
                 continue
 
             domains.append(domain)

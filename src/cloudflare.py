@@ -2,6 +2,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
+from requests.adapters import HTTPAdapter
 
 load_dotenv()
 
@@ -13,6 +14,8 @@ if not CF_API_TOKEN or not CF_IDENTIFIER:
 
 session = requests.Session()
 session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
+session.mount("http://", HTTPAdapter(max_retries=3))
+session.mount("https://", HTTPAdapter(max_retries=3))
 
 
 def get_lists(name_prefix: str):

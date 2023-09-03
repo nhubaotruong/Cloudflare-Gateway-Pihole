@@ -1,3 +1,4 @@
+import logging
 import os
 
 import requests
@@ -44,9 +45,15 @@ def create_list(name: str, domains: list[str]):
 
     if resp.status_code != 200:
         json_body = resp.json()
-        if json_body["errors"][0]["code"] == 1204:
+        if (
+            "errors" in json_body
+            and len(json_body["errors"]) == 1
+            and "code" in json_body["errors"][0]
+            and json_body["errors"][0]["code"] == 1204
+        ):
             return
         else:
+            logging.error(json_body)
             raise Exception(resp.text)
 
     return resp.json()["result"]

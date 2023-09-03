@@ -18,10 +18,17 @@ def read_domain_urls():
     return adlist_urls
 
 
+def read_whitelist_urls():
+    with open("whitelists.txt", "r") as file:
+        whitelist_urls = [url.strip() for url in file if url.strip()]
+    return whitelist_urls
+
+
 if __name__ == "__main__":
     adlist_urls = read_domain_urls()
+    whitelist_urls = read_whitelist_urls()
     adlist_name = "DNS Block List"
-    app = App(adlist_name, adlist_urls)
+    app = App(adlist_name, adlist_urls, whitelist_urls)
     try:
         app.run()
     except Exception:

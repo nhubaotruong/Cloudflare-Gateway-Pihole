@@ -6,11 +6,7 @@ from requests.adapters import HTTPAdapter
 
 from src import cloudflare
 
-ip_v4_address_regex = re.compile(
-    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?["
-    r"0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|["
-    r"01]?[0-9][0-9]?)$"
-)
+simple_ip_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*(.+)$")
 
 valid_domain_regex = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}")
 
@@ -22,16 +18,27 @@ list_download_session.mount("https://", HTTPAdapter(max_retries=3))
 
 
 class App:
-    def __init__(self, adlist_name: str, adlist_urls: list[str]):
+    def __init__(
+        self, adlist_name: str, adlist_urls: list[str], whitelist_urls: list[str]
+    ):
         self.adlist_name = adlist_name
         self.adlist_urls = adlist_urls
+        self.whitelist_urls = whitelist_urls
         self.name_prefix = f"[AdBlock-{adlist_name}]"
 
     def run(self):
         file_content = ""
+        whitelist_content = ""
         for url in self.adlist_urls:
             file_content += self.download_file(url)
-        domains = self.convert_to_domain_list(file_content)
+        for url in self.whitelist_urls:
+            whitelist_content += self.download_file(url)
+        unfiltered_domains = self.convert_to_domain_list(file_content)
+        whitelist_domains = self.convert_to_domain_list(whitelist_content)
+
+        # remove whitelisted domains
+        domains = list(set(unfiltered_domains) - set(whitelist_domains))
+        logging.info(f"Number of domains after filtering: {len(domains)}")
 
         # check if the list is already in Cloudflare
         cf_lists = cloudflare.get_lists(self.name_prefix)
@@ -92,52 +99,44 @@ class App:
     def download_file(self, url: str):
         logging.info(f"Downloading file from {url}")
         r = list_download_session.get(url, allow_redirects=True)
+        text = r.content.decode("utf-8")
+        # Workaround for stevenblack
+        if "# Start StevenBlack" in text:
+            text = text.split("# Start StevenBlack")[1]
         logging.info(f"File size: {len(r.content)}")
-        return r.content.decode("utf-8")
+        return text
 
     def convert_to_domain_list(self, file_content: str):
-        # check if the file is a hosts file or a list of domain
-        is_hosts_file = False
-        for ip in ["localhost", "127.0.0.1", "::1", "0.0.0.0"]:
-            if ip in file_content:
-                is_hosts_file = True
-                break
+        skip_domains = [
+            "localhost",
+            "local",
+            "localhost.localdomain",
+        ]
 
         domains = []
 
-        for line in file_content.splitlines():
-            # Fix StevenBlack hosts
-            skip_lines = [
-                "0.0.0.0 0.0.0.0",
-                "127.0.0.1 localhost",
-                "127.0.0.1 localhost.localdomain",
-                "127.0.0.1 local",
-            ]
-            if line in skip_lines:
-                continue
-
+        for _line in file_content.splitlines():
             # skip comments and empty lines
+            line = _line.strip()
             if line.startswith("#") or line == "":
                 continue
 
-            if is_hosts_file:
-                # remove the ip address and the trailing newline
-                parts = line.split()
-                if len(parts) < 2:
-                    continue
-                domain = parts[1].strip()
-                # skip the localhost entry
-                if domain == "localhost":
-                    continue
+            if domain_search := simple_ip_regex.search(line):
+                domain = domain_search.group(1).strip().lower()
             else:
-                domain = line.strip()
+                domain = line.strip().lower()
 
-            if not valid_domain_regex.match(domain):
+            if "#" in domain:
+                domain = domain.split("#")[0].strip().lower()
+
+            if domain in skip_domains:
+                continue
+
+            if not bool(valid_domain_regex.match(domain)):
                 continue
 
             domains.append(domain)
 
-        # remove duplicate line
         domains = sorted(list(set(domains)))
 
         logging.info(f"Number of domains: {len(domains)}")
@@ -164,8 +163,14 @@ class App:
 
     def write_list(self):
         file_content = ""
+        whitelist_content = ""
         for url in self.adlist_urls:
             file_content += self.download_file(url)
+        for url in self.whitelist_urls:
+            whitelist_content += self.download_file(url)
         domains = self.convert_to_domain_list(file_content)
-        with open("domains.txt", "w") as file:
-            file.write("\n".join(domains))
+        whitelist_domains = self.convert_to_domain_list(whitelist_content)
+
+        # remove whitelisted domains
+        filtered_domains = list(set(domains) - set(whitelist_domains))
+        logging.info(f"Number of domains after filtering: {len(filtered_domains)}")

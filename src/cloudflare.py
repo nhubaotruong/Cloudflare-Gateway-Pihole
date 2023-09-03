@@ -40,8 +40,11 @@ def create_list(name: str, domains: list[str]):
     )
 
     if resp.status_code != 200:
-        # raise Exception(resp.text)
-        return
+        json_body = resp.json()
+        if json_body["errors"][0]["code"] == 1204:
+            return
+        else:
+            raise Exception(resp.text)
 
     return resp.json()["result"]
 

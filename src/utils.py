@@ -135,7 +135,7 @@ class App:
             if not bool(valid_domain_regex.match(domain)):
                 continue
 
-            domains.append(domain)
+            domains.append(domain.encode("idna").decode())
 
         domains = sorted(list(set(domains)))
 
@@ -174,3 +174,6 @@ class App:
         # remove whitelisted domains
         filtered_domains = list(set(domains) - set(whitelist_domains))
         logging.info(f"Number of domains after filtering: {len(filtered_domains)}")
+        with open("domains2.txt", "w") as f:
+            for item in filtered_domains:
+                f.write("%s\n" % item)

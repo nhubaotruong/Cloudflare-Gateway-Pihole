@@ -33,11 +33,11 @@ class App:
             file_content += self.download_file(url)
         for url in self.whitelist_urls:
             whitelist_content += self.download_file(url)
-        unfiltered_domains = self.convert_to_domain_list(file_content)
-        whitelist_domains = self.convert_to_domain_list(whitelist_content)
+        unfiltered_domains = self.convert_to_domain_set(file_content)
+        whitelist_domains = self.convert_to_domain_set(whitelist_content)
 
         # remove whitelisted domains
-        domains = list(set(unfiltered_domains) - set(whitelist_domains))
+        domains = sorted(list(unfiltered_domains - whitelist_domains))
         logging.info(f"Number of domains after filtering: {len(domains)}")
 
         # check if the list is already in Cloudflare
@@ -106,14 +106,14 @@ class App:
         logging.info(f"File size: {len(r.content)}")
         return text
 
-    def convert_to_domain_list(self, file_content: str):
+    def convert_to_domain_set(self, file_content: str):
         skip_domains = [
             "localhost",
             "local",
             "localhost.localdomain",
         ]
 
-        domains = []
+        domains = set()
 
         for _line in file_content.splitlines():
             # skip comments and empty lines
@@ -135,9 +135,7 @@ class App:
             if not bool(valid_domain_regex.match(domain)):
                 continue
 
-            domains.append(domain.encode("idna").decode())
-
-        domains = sorted(list(set(domains)))
+            domains.add(domain.encode("idna").decode())
 
         logging.info(f"Number of domains: {len(domains)}")
 
@@ -168,11 +166,11 @@ class App:
             file_content += self.download_file(url)
         for url in self.whitelist_urls:
             whitelist_content += self.download_file(url)
-        domains = self.convert_to_domain_list(file_content)
-        whitelist_domains = self.convert_to_domain_list(whitelist_content)
+        domains = self.convert_to_domain_set(file_content)
+        whitelist_domains = self.convert_to_domain_set(whitelist_content)
 
         # remove whitelisted domains
-        filtered_domains = list(set(domains) - set(whitelist_domains))
+        filtered_domains = sorted(list(domains - whitelist_domains))
         logging.info(f"Number of domains after filtering: {len(filtered_domains)}")
         with open("domains2.txt", "w") as f:
             for item in filtered_domains:

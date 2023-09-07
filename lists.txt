@@ -23,3 +23,4 @@ https://pgl.yoyo.org/as/serverlist.php?hostformat=hosts;mimetype=plaintext
 https://someonewhocares.org/hosts/zero/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
+https://luxysiv.github.io/custom-filters/adhell-ext.txt

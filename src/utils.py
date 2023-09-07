@@ -1,8 +1,8 @@
+import asyncio
 import logging
 import re
 
-import requests
-from requests.adapters import HTTPAdapter
+import aiohttp
 
 from src import cloudflare
 
@@ -11,37 +11,25 @@ simple_ip_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*(.+)$")
 valid_domain_regex = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
 
 
-# Create session with 3 retries
-list_download_session = requests.Session()
-list_download_session.mount("http://", HTTPAdapter(max_retries=3))
-list_download_session.mount("https://", HTTPAdapter(max_retries=3))
-
-
 class App:
     def __init__(
-        self, adlist_name: str, adlist_urls: list[str], whitelist_urls: list[str]
+        self,
+        adlist_name: str,
+        adlist_urls: list[str],
+        whitelist_urls: list[str],
+        session: aiohttp.ClientSession,
     ):
         self.adlist_name = adlist_name
         self.adlist_urls = adlist_urls
         self.whitelist_urls = whitelist_urls
         self.name_prefix = f"[AdBlock-{adlist_name}]"
+        self.session = session
 
-    def run(self):
-        file_content = ""
-        whitelist_content = ""
-        for url in self.adlist_urls:
-            file_content += self.download_file(url)
-        for url in self.whitelist_urls:
-            whitelist_content += self.download_file(url)
-        unfiltered_domains = self.convert_to_domain_set(file_content)
-        whitelist_domains = self.convert_to_domain_set(whitelist_content)
-
-        # remove whitelisted domains
-        domains = sorted(list(unfiltered_domains - whitelist_domains))
-        logging.info(f"Number of domains after filtering: {len(domains)}")
+    async def run(self):
+        domains = await self.get_domains()
 
         # check if the list is already in Cloudflare
-        cf_lists = cloudflare.get_lists(self.name_prefix)
+        cf_lists = await cloudflare.get_lists(self.session, self.name_prefix)
 
         logging.info(f"Number of lists in Cloudflare: {len(cf_lists)}")
 
@@ -52,34 +40,56 @@ class App:
 
         # Delete existing policy created by script
         policy_prefix = f"{self.name_prefix} Block Ads"
-        deleted_policies = cloudflare.delete_gateway_policy(policy_prefix)
+        deleted_policies = await cloudflare.delete_gateway_policy(
+            self.session, policy_prefix
+        )
         logging.info(f"Deleted {deleted_policies} gateway policies")
 
-        # delete the lists
+        # Delete existing lists created by script
+        delete_list_tasks = []
         for l in cf_lists:
             logging.info(f"Deleting list {l['name']} - ID:{l['id']} ")
-            cloudflare.delete_list(l["name"], l["id"])
+            delete_list_tasks.append(
+                asyncio.create_task(
+                    cloudflare.delete_list(self.session, l["name"], l["id"])
+                )
+            )
+        for task in delete_list_tasks:
+            await task
 
         cf_lists = []
+        cf_list_count = 0
 
         # chunk the domains into lists of 1000 and create them
+        create_list_tasks = []
         for chunk in self.chunk_list(domains, 1000):
-            list_name = f"{self.name_prefix} {len(cf_lists) + 1}"
+            cf_list_count += 1
+            list_name = f"{self.name_prefix} {cf_list_count}"
             logging.info(f"Creating list {list_name}")
-            _list = cloudflare.create_list(list_name, chunk)
+            create_list_tasks.append(
+                asyncio.create_task(
+                    cloudflare.create_list(self.session, list_name, chunk)
+                )
+            )
+        for task in create_list_tasks:
+            _list = await task
             if _list:
                 cf_lists.append(_list)
 
         # get the gateway policies
-        cf_policies = cloudflare.get_firewall_policies(self.name_prefix)
+        cf_policies = await cloudflare.get_firewall_policies(
+            self.session, self.name_prefix
+        )
 
         logging.info(f"Number of policies in Cloudflare: {len(cf_policies)}")
 
         # setup the gateway policy
         if len(cf_policies) == 0:
             logging.info("Creating firewall policy")
-            cf_policies = cloudflare.create_gateway_policy(
-                f"{self.name_prefix} Block Ads", [l["id"] for l in cf_lists]
+            cf_policies = await cloudflare.create_gateway_policy(
+                self.session,
+                f"{self.name_prefix} Block Ads",
+                [l["id"] for l in cf_lists],
             )
 
         elif len(cf_policies) != 1:
@@ -88,23 +98,14 @@ class App:
 
         else:
             logging.info("Updating firewall policy")
-            cloudflare.update_gateway_policy(
+            await cloudflare.update_gateway_policy(
+                self.session,
                 f"{self.name_prefix} Block Ads",
                 cf_policies[0]["id"],
                 [l["id"] for l in cf_lists],
             )
 
         logging.info("Done")
-
-    def download_file(self, url: str):
-        logging.info(f"Downloading file from {url}")
-        r = list_download_session.get(url, allow_redirects=True)
-        text = r.content.decode("utf-8")
-        # Workaround for stevenblack
-        if "# Start StevenBlack" in text:
-            text = text.split("# Start StevenBlack")[1]
-        logging.info(f"File size: {len(r.content)}")
-        return text
 
     def convert_to_domain_set(self, file_content: str):
         skip_domains = [
@@ -141,37 +142,72 @@ class App:
 
         return domains
 
-    def chunk_list(self, _list: list[str], n: int):
+    @staticmethod
+    def chunk_list(_list: list[str], n: int):
         for i in range(0, len(_list), n):
             yield _list[i : i + n]
 
-    def delete(self):
+    async def delete(self):
         # Delete gateway policy
         policy_prefix = f"{self.name_prefix} Block Ads"
-        deleted_policies = cloudflare.delete_gateway_policy(policy_prefix)
+        deleted_policies = await cloudflare.delete_gateway_policy(
+            self.session, policy_prefix
+        )
         logging.info(f"Deleted {deleted_policies} gateway policies")
 
         # Delete lists
-        cf_lists = cloudflare.get_lists(self.name_prefix)
+        cf_lists = await cloudflare.get_lists(self.session, self.name_prefix)
+
+        delete_lists_tasks = []
         for l in cf_lists:
             logging.info(f"Deleting list {l['name']} - ID:{l['id']} ")
-            cloudflare.delete_list(l["name"], l["id"])
+            delete_lists_tasks.append(
+                asyncio.create_task(
+                    cloudflare.delete_list(self.session, l["name"], l["id"])
+                )
+            )
+        for task in delete_lists_tasks:
+            await task
 
         logging.info("Deletion completed")
 
-    def write_list(self):
+    async def write_list(self):
+        filtered_domains = await self.get_domains()
+        with open("domains.txt", "w") as f:
+            for item in filtered_domains:
+                f.write("%s\n" % item)
+
+    async def get_domains(self):
         file_content = ""
         whitelist_content = ""
-        for url in self.adlist_urls:
-            file_content += self.download_file(url)
-        for url in self.whitelist_urls:
-            whitelist_content += self.download_file(url)
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            whitelist_tasks = []
+            for url in self.adlist_urls:
+                tasks.append(
+                    asyncio.create_task(self.download_file_async(session, url))
+                )
+            for url in self.whitelist_urls:
+                whitelist_tasks.append(
+                    asyncio.create_task(self.download_file_async(session, url))
+                )
+            for task in tasks:
+                file_content += await task
+            for task in whitelist_tasks:
+                whitelist_content += await task
         domains = self.convert_to_domain_set(file_content)
         whitelist_domains = self.convert_to_domain_set(whitelist_content)
 
         # remove whitelisted domains
         filtered_domains = sorted(list(domains - whitelist_domains))
         logging.info(f"Number of domains after filtering: {len(filtered_domains)}")
-        with open("domains2.txt", "w") as f:
-            for item in filtered_domains:
-                f.write("%s\n" % item)
+        return filtered_domains
+
+    async def download_file_async(self, session: aiohttp.ClientSession, url: str):
+        async with session.get(url) as response:
+            text = await response.text()
+            # Workaround for stevenblack
+            if "# Start StevenBlack" in text:
+                text = text.split("# Start StevenBlack")[1]
+            logging.info(f"Downloaded file from {url}. File size: {len(text)}")
+            return text

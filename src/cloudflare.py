@@ -1,38 +1,26 @@
 import os
 
-import requests
+import aiohttp
 from dotenv import load_dotenv
-from requests.adapters import HTTPAdapter
 
 load_dotenv()
 
-CF_API_TOKEN = os.getenv("CF_API_TOKEN") or os.environ.get("CF_API_TOKEN")
 CF_IDENTIFIER = os.getenv("CF_IDENTIFIER") or os.environ.get("CF_IDENTIFIER")
 
-if not CF_API_TOKEN or not CF_IDENTIFIER:
-    raise Exception("Missing Cloudflare credentials")
 
-session = requests.Session()
-session.headers.update({"Authorization": f"Bearer {CF_API_TOKEN}"})
-session.mount("http://", HTTPAdapter(max_retries=3))
-session.mount("https://", HTTPAdapter(max_retries=3))
-
-
-def get_lists(name_prefix: str):
-    resp = session.get(
+async def get_lists(session: aiohttp.ClientSession, name_prefix: str):
+    async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-
-    lists = resp.json()["result"] or []
-
-    return [l for l in lists if l["name"].startswith(name_prefix)]
+        lists = (await resp.json())["result"] or []
+        return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
-def create_list(name: str, domains: list[str]):
-    resp = session.post(
+async def create_list(session: aiohttp.ClientSession, name: str, domains: list[str]):
+    async with session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
         json={
             "name": name,
@@ -40,38 +28,38 @@ def create_list(name: str, domains: list[str]):
             "type": "DOMAIN",
             "items": [{"value": d} for d in domains],
         },
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-
-    return resp.json()["result"]
+        return (await resp.json())["result"]
 
 
-def delete_list(name: str, list_id: str):
-    resp = session.delete(
+async def delete_list(session: aiohttp.ClientSession, name: str, list_id: str):
+    async with session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists/{list_id}",
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-
-    return resp.json()["result"]
+        return (await resp.json())["result"]
 
 
-def get_firewall_policies(name_prefix: str):
-    resp = session.get(
+async def get_firewall_policies(session: aiohttp.ClientSession, name_prefix: str):
+    async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-    lists = resp.json()["result"] or []
-    return [l for l in lists if l["name"].startswith(name_prefix)]
+        policies = (await resp.json())["result"] or []
+        return [l for l in policies if l["name"].startswith(name_prefix)]
 
 
-def create_gateway_policy(name: str, list_ids: list[str]):
-    resp = session.post(
+async def create_gateway_policy(
+    session: aiohttp.ClientSession, name: str, list_ids: list[str]
+):
+    async with session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
         json={
             "name": name,
@@ -84,15 +72,17 @@ def create_gateway_policy(name: str, list_ids: list[str]):
                 "block_page_enabled": False,
             },
         },
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-    return resp.json()["result"]
+        return (await resp.json())["result"]
 
 
-def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
-    resp = session.put(
+async def update_gateway_policy(
+    session: aiohttp.ClientSession, name: str, policy_id: str, list_ids: list[str]
+):
+    async with session.put(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
         json={
             "name": name,
@@ -100,35 +90,36 @@ def update_gateway_policy(name: str, policy_id: str, list_ids: list[str]):
             "enabled": True,
             "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
         },
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-    return resp.json()["result"]
+        return (await resp.json())["result"]
 
 
-def delete_gateway_policy(policy_name_prefix: str):
-    resp = session.get(
+async def delete_gateway_policy(
+    session: aiohttp.ClientSession, policy_name_prefix: str
+):
+    async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
+        policies = (await resp.json())["result"] or []
+        policy_to_delete = next(
+            (p for p in policies if p["name"].startswith(policy_name_prefix)), None
+        )
 
-    policies = resp.json()["result"] or []
-    policy_to_delete = next(
-        (p for p in policies if p["name"].startswith(policy_name_prefix)), None
-    )
+        if not policy_to_delete:
+            return 0
 
-    if not policy_to_delete:
-        return 0
+        policy_id = policy_to_delete["id"]
 
-    policy_id = policy_to_delete["id"]
-
-    resp = session.delete(
+    async with session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
-    )
+    ) as resp:
+        if resp.status != 200:
+            raise Exception(await resp.text())
 
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-    return 1
+        return 1

@@ -1,3 +1,4 @@
+import functools
 import os
 
 import aiohttp
@@ -5,10 +6,27 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+CF_API_TOKEN = os.getenv("CF_API_TOKEN") or os.environ.get("CF_API_TOKEN")
 CF_IDENTIFIER = os.getenv("CF_IDENTIFIER") or os.environ.get("CF_IDENTIFIER")
 
+if not CF_API_TOKEN or not CF_IDENTIFIER:
+    raise Exception("Missing Cloudflare credentials")
 
-async def get_lists(session: aiohttp.ClientSession, name_prefix: str):
+
+def aiohttp_session(func):
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        async with aiohttp.ClientSession(
+            headers={"Authorization": f"Bearer {CF_API_TOKEN}"}
+        ) as sesison:
+            kwargs["session"] = sesison
+            return await func(*args, **kwargs)
+
+    return wrapper
+
+
+@aiohttp_session
+async def get_lists(name_prefix: str, session: aiohttp.ClientSession):
     async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
     ) as resp:
@@ -19,7 +37,12 @@ async def get_lists(session: aiohttp.ClientSession, name_prefix: str):
         return [l for l in lists if l["name"].startswith(name_prefix)]
 
 
-async def create_list(session: aiohttp.ClientSession, name: str, domains: list[str]):
+@aiohttp_session
+async def create_list(
+    name: str,
+    domains: list[str],
+    session: aiohttp.ClientSession,
+):
     async with session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists",
         json={
@@ -35,7 +58,8 @@ async def create_list(session: aiohttp.ClientSession, name: str, domains: list[s
         return (await resp.json())["result"]
 
 
-async def delete_list(session: aiohttp.ClientSession, name: str, list_id: str):
+@aiohttp_session
+async def delete_list(name: str, list_id: str, session: aiohttp.ClientSession):
     async with session.delete(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/lists/{list_id}",
     ) as resp:
@@ -45,7 +69,8 @@ async def delete_list(session: aiohttp.ClientSession, name: str, list_id: str):
         return (await resp.json())["result"]
 
 
-async def get_firewall_policies(session: aiohttp.ClientSession, name_prefix: str):
+@aiohttp_session
+async def get_firewall_policies(name_prefix: str, session: aiohttp.ClientSession):
     async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
     ) as resp:
@@ -56,8 +81,9 @@ async def get_firewall_policies(session: aiohttp.ClientSession, name_prefix: str
         return [l for l in policies if l["name"].startswith(name_prefix)]
 
 
+@aiohttp_session
 async def create_gateway_policy(
-    session: aiohttp.ClientSession, name: str, list_ids: list[str]
+    name: str, list_ids: list[str], session: aiohttp.ClientSession
 ):
     async with session.post(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",
@@ -79,8 +105,9 @@ async def create_gateway_policy(
         return (await resp.json())["result"]
 
 
+@aiohttp_session
 async def update_gateway_policy(
-    session: aiohttp.ClientSession, name: str, policy_id: str, list_ids: list[str]
+    name: str, policy_id: str, list_ids: list[str], session: aiohttp.ClientSession
 ):
     async with session.put(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules/{policy_id}",
@@ -97,8 +124,9 @@ async def update_gateway_policy(
         return (await resp.json())["result"]
 
 
+@aiohttp_session
 async def delete_gateway_policy(
-    session: aiohttp.ClientSession, policy_name_prefix: str
+    policy_name_prefix: str, session: aiohttp.ClientSession
 ):
     async with session.get(
         f"https://api.cloudflare.com/client/v4/accounts/{CF_IDENTIFIER}/gateway/rules",

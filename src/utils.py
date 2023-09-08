@@ -45,25 +45,16 @@ class App:
         delete_list_tasks = []
         for l in cf_lists:
             logging.info(f"Deleting list {l['name']} - ID:{l['id']} ")
-            delete_list_tasks.append(
-                asyncio.create_task(cloudflare.delete_list(l["name"], l["id"]))
-            )
-        for task in delete_list_tasks:
-            await task
+            delete_list_tasks.append(cloudflare.delete_list(l["name"], l["id"]))
+        await asyncio.gather(*delete_list_tasks)
 
         # chunk the domains into lists of 1000 and create them
         create_list_tasks = []
         for i, chunk in enumerate(self.chunk_list(domains, 1000)):
             list_name = f"{self.name_prefix} {i + 1}"
             logging.info(f"Creating list {list_name}")
-            create_list_tasks.append(
-                asyncio.create_task(cloudflare.create_list(list_name, chunk))
-            )
-        cf_lists = []
-        for task in create_list_tasks:
-            _list = await task
-            if _list:
-                cf_lists.append(_list)
+            create_list_tasks.append(cloudflare.create_list(list_name, chunk))
+        cf_lists = await asyncio.gather(*create_list_tasks)
 
         # get the gateway policies
         cf_policies = await cloudflare.get_firewall_policies(self.name_prefix)

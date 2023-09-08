@@ -1,2 +1,2 @@
 python-dotenv
-aiohttp
+aiohttp[speedups]

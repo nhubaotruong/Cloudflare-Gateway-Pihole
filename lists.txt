@@ -19,7 +19,7 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Samsung-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Spotify-AdBlock.txt
 https://raw.githubusercontent.com/cbuijs/accomplist/master/typosquat/plain.black.domain.list
-https://pgl.yoyo.org/as/serverlist.php?hostformat=hosts;mimetype=plaintext
+https://small.oisd.nl/domainswild2
 https://someonewhocares.org/hosts/zero/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts

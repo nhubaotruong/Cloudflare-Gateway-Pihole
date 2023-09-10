@@ -18,8 +18,10 @@ https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Xiaomi-Extension.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Samsung-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Spotify-AdBlock.txt
+https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-YouTube-AdBlock.txt
+https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
 https://raw.githubusercontent.com/cbuijs/accomplist/master/typosquat/plain.black.domain.list
-https://small.oisd.nl/domainswild2
+https://big.oisd.nl/domainswild2
 https://someonewhocares.org/hosts/zero/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts

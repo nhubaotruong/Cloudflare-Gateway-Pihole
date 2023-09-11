@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import traceback
+import uvloop
 
 from src.colorlogs import ColoredLevelFormatter
 from src.utils import App
@@ -33,10 +34,12 @@ async def main():
     try:
         app = App(adlist_name, adlist_urls, whitelist_urls)
         await app.run()
+        # await app.write_list()
     except Exception:
         traceback.print_exc()
         exit(1)
 
 
 if __name__ == "__main__":
+    uvloop.install()
     asyncio.run(main())

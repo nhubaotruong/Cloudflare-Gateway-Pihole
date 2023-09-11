@@ -19,6 +19,5 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Samsung-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Spotify-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
-https://raw.githubusercontent.com/cbuijs/accomplist/master/typosquat/plain.black.domain.list
 https://small.oisd.nl/domainswild2
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt

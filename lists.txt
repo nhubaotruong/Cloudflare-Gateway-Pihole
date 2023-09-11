@@ -1,4 +1,4 @@
-https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts
+https://raw.githubusercontent.com/bigdargon/hostsVN/master/option/domain.txt
 https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts
 https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/threat/hosts
 https://raw.githubusercontent.com/luxysiv/hosts/main/hosts.txt
@@ -21,7 +21,4 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
 https://raw.githubusercontent.com/cbuijs/accomplist/master/typosquat/plain.black.domain.list
 https://small.oisd.nl/domainswild2
-https://someonewhocares.org/hosts/zero/hosts
-https://winhelp2002.mvps.org/hosts.txt
-https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
-https://luxysiv.github.io/custom-filters/adhell-ext.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt

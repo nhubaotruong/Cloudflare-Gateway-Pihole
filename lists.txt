@@ -25,4 +25,3 @@ https://someonewhocares.org/hosts/zero/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
 https://luxysiv.github.io/custom-filters/adhell-ext.txt
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/tif.txt

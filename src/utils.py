@@ -2,6 +2,7 @@ import asyncio
 import logging
 import re
 from collections import defaultdict
+import uuid
 
 import aiohttp
 
@@ -51,8 +52,8 @@ class App:
 
         # chunk the domains into lists of 1000 and create them
         create_list_tasks = []
-        for i, chunk in enumerate(self.chunk_list(domains, 1000)):
-            list_name = f"{self.name_prefix} {i + 1}"
+        for chunk in self.chunk_list(domains, 1000):
+            list_name = f"{self.name_prefix} {uuid.uuid4().hex}"
             logging.info(f"Creating list {list_name}")
             create_list_tasks.append(cloudflare.create_list(list_name, chunk))
         cf_lists = await asyncio.gather(*create_list_tasks)

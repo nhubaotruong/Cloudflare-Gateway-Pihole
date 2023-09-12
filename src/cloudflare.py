@@ -53,7 +53,7 @@ async def create_list(
         },
     ) as resp:
         if resp.status != 200:
-            raise Exception(await resp.text())
+            raise Exception(name + (await resp.text()))
 
         return (await resp.json())["result"]
 

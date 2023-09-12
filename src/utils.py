@@ -166,8 +166,5 @@ class App:
     async def download_file_async(self, session: aiohttp.ClientSession, url: str):
         async with session.get(url) as response:
             text = await response.text()
-            # Workaround for stevenblack
-            if "# Start StevenBlack" in text:
-                text = text.split("# Start StevenBlack")[1]
-            logging.info(f"Downloaded file from {url}. File size: {len(text)}")
+            logging.info(f"Downloaded file from {url} . File size: {len(text)}")
             return text

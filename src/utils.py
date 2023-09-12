@@ -7,8 +7,7 @@ import aiohttp
 from src import cloudflare
 
 
-replace_pattern = re.compile(r"(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@@\|\||\*\.|\*))")
-domain_pattern = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
+domain_pattern = re.compile(r"^((?!-)[A-Za-z0-9-_]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
 ip_pattern = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 
 
@@ -93,8 +92,19 @@ class App:
 
             # convert to domains
             line = line.strip()
-            linex = line.split("#")[0].split("^")[0].replace("\r", "")
-            domain = replace_pattern.sub("", linex, count=1)
+            domain = (
+                line.replace("\r", "")
+                .replace("0.0.0.0 ", "")
+                .replace("127.0.0.1 ", "")
+                .replace("::1 ", "")
+                .replace(":: ", "")
+                .replace("^", "")
+                .replace("||", "")
+                .replace("@@||", "")
+                .replace("^$important", "")
+                .replace("*.", "")
+                .replace("^", "")
+            )
 
             # remove not domains
             if not domain_pattern.match(domain) or ip_pattern.match(domain):

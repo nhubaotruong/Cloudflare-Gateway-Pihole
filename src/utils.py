@@ -1,11 +1,11 @@
 import asyncio
 import logging
 import re
+from collections import defaultdict
 
 import aiohttp
 
 from src import cloudflare
-
 
 domain_pattern = re.compile(r"^((?!-)[A-Za-z0-9-_]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
 ip_pattern = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
@@ -112,6 +112,8 @@ class App:
 
             domains.add(domain.encode("idna").decode("ascii"))
 
+        domains = set(self.get_most_specific_subdomains(list(domains)))
+
         logging.info(f"Number of domains: {len(domains)}")
 
         return domains
@@ -178,3 +180,39 @@ class App:
             text = await response.text()
             logging.info(f"Downloaded file from {url} . File size: {len(text)}")
             return text
+
+    def get_most_specific_subdomains(self, domains: list[str]):
+        # Create a dictionary where the keys are the base domains and the values are lists of subdomains
+        domain_dict = defaultdict(list)
+
+        for domain in domains:
+            # Split the domain into its constituent parts
+            split_domain = domain.split(".")
+
+            # The base domain is the last two parts of the domain (e.g., 'example.com')
+            base_domain = ".".join(split_domain[-2:])
+
+            # Add the domain to the dictionary
+            domain_dict[base_domain].append(split_domain)
+
+        most_specific_domains = []
+
+        # For each base domain, find the most specific subdomain(s)
+        for base_domain, subdomains in domain_dict.items():
+            # Sort the subdomains by length (number of parts)
+            sorted_subdomains = sorted(subdomains, key=len, reverse=True)
+
+            # Get the length of the longest subdomain
+            max_length = len(sorted_subdomains[0])
+
+            # Filter out the subdomains that are not the most specific
+            most_specific_subdomains = [
+                ".".join(subdomain)
+                for subdomain in sorted_subdomains
+                if len(subdomain) == max_length
+            ]
+
+            # Add the most specific subdomains to the result list
+            most_specific_domains.extend(most_specific_subdomains)
+
+        return most_specific_domains

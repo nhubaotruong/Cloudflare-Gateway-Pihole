@@ -6,9 +6,10 @@ import aiohttp
 
 from src import cloudflare
 
-simple_ip_regex = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s*(.+)$")
 
-valid_domain_regex = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
+replace_pattern = re.compile(r"(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@@\|\||\*\.|\*))")
+domain_pattern = re.compile(r"^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$")
+ip_pattern = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 
 
 class App:
@@ -84,32 +85,19 @@ class App:
         logging.info("Done")
 
     def convert_to_domain_set(self, file_content: str):
-        skip_domains = [
-            "localhost",
-            "local",
-            "localhost.localdomain",
-        ]
-
         domains = set()
-
-        for _line in file_content.splitlines():
+        for line in file_content.splitlines():
             # skip comments and empty lines
-            line = _line.strip()
-            if line.startswith("#") or line == "":
+            if line.startswith(("#", "!", "/")) or line == "":
                 continue
 
-            if domain_search := simple_ip_regex.search(line):
-                domain = domain_search.group(1).strip().lower()
-            else:
-                domain = line.strip().lower()
+            # convert to domains
+            line = line.strip()
+            linex = line.split("#")[0].split("^")[0].replace("\r", "")
+            domain = replace_pattern.sub("", linex, count=1)
 
-            if "#" in domain:
-                domain = domain.split("#")[0].strip().lower()
-
-            if domain in skip_domains:
-                continue
-
-            if not bool(valid_domain_regex.match(domain)):
+            # remove not domains
+            if not domain_pattern.match(domain) or ip_pattern.match(domain):
                 continue
 
             domains.add(domain.encode("idna").decode())
@@ -151,7 +139,7 @@ class App:
 
     async def get_domains(self):
         async with aiohttp.ClientSession() as session:
-            file_content = "".join(
+            file_content = "\n".join(
                 await asyncio.gather(
                     *[
                         self.download_file_async(session, url)
@@ -159,7 +147,7 @@ class App:
                     ]
                 )
             )
-            whitelist_content = "".join(
+            whitelist_content = "\n".join(
                 await asyncio.gather(
                     *[
                         self.download_file_async(session, url)

@@ -100,7 +100,7 @@ class App:
             if not domain_pattern.match(domain) or ip_pattern.match(domain):
                 continue
 
-            domains.add(domain.encode("idna").decode())
+            domains.add(domain.encode("idna").decode("ascii"))
 
         logging.info(f"Number of domains: {len(domains)}")
 

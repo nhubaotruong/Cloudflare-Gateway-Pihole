@@ -4,7 +4,7 @@ https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/threat/hos
 https://raw.githubusercontent.com/luxysiv/hosts/main/hosts.txt
 https://raw.githubusercontent.com/Yhonay/antipopads/master/hosts
 https://abpvn.com/android/abpvn.txt
-https://malware-filter.gitlab.io/malware-filter/vn-badsite-filter-hosts.txt
+https://malware-filter.gitlab.io/malware-filter/vn-badsite-filter-domains.txt
 https://raw.githubusercontent.com/nextdns/native-tracking-domains/main/domains/alexa
 https://raw.githubusercontent.com/nextdns/native-tracking-domains/main/domains/huawei
 https://raw.githubusercontent.com/nextdns/native-tracking-domains/main/domains/roku
@@ -21,3 +21,4 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
 https://small.oisd.nl/domainswild2
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt
+https://malware-filter.gitlab.io/malware-filter/phishing-filter-domains.txt

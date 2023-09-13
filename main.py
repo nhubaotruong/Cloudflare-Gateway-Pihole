@@ -32,12 +32,15 @@ async def main():
     whitelist_urls = read_whitelist_urls()
     adlist_name = "DNS Block List"
 
-    try:
-        app = App(adlist_name, adlist_urls, whitelist_urls)
-        await app.run()
-    except Exception:
-        traceback.print_exc()
-        exit(1)
+    app = App(adlist_name, adlist_urls, whitelist_urls)
+    for _ in range(3):
+        try:
+            await app.run()
+            return 0
+        except Exception:
+            traceback.print_exc()
+            await asyncio.sleep(60)
+    return 1
 
 
 if __name__ == "__main__":

@@ -21,4 +21,3 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
 https://small.oisd.nl/domainswild2
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt
-https://malware-filter.gitlab.io/malware-filter/phishing-filter-domains.txt

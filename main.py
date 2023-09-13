@@ -39,7 +39,7 @@ async def main():
             return 0
         except Exception:
             traceback.print_exc()
-            await asyncio.sleep(60)
+            await asyncio.sleep(120)
     return 1
 
 

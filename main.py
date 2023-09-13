@@ -33,13 +33,11 @@ async def main():
     adlist_name = "DNS Block List"
 
     app = App(adlist_name, adlist_urls, whitelist_urls)
-    for i in range(2):
-        try:
-            await app.run()
-            return
-        except Exception:
-            traceback.print_exc()
-    raise Exception("Failed to run app")
+    try:
+        await app.run()
+    except Exception:
+        traceback.print_exc()
+        exit(1)
 
 
 if __name__ == "__main__":

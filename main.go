@@ -31,6 +31,17 @@ func main() {
 	// Get cf lists
 	prefix := "[AdBlock-DNS Block List]"
 	cf_lists := get_cf_lists(prefix)
+
+	// Compare existing policies
+	sum := 0
+	for _, v := range cf_lists {
+		sum += int(v.(map[string]interface{})["count"].(float64))
+	}
+	if len(black_list_list) == sum {
+		fmt.Println("Lists are the same size, skipping")
+		return
+	}
+
 	policy_prefix := fmt.Sprintf("%s Block Ads", prefix)
 	// deleted_policies = await cloudflare.delete_gateway_policy(policy_prefix)
 	deleted_policy := delete_gateway_policy(policy_prefix)

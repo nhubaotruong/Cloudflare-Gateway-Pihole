@@ -86,8 +86,8 @@ func convert_to_domain_set(domains []string) map[string]bool {
 		linex = strings.Split(linex, "$")[0]
 		linex = strings.ReplaceAll(linex, "\r", "")
 		linex = strings.TrimSpace(linex)
-		linex = strings.TrimPrefix(linex, ".")
 		linex = strings.TrimPrefix(linex, "*.")
+		linex = strings.TrimPrefix(linex, ".")
 		linex = replace_pattern.ReplaceAllString(linex, "")
 		// Convert idna
 		domain, err := idna.ToASCII(linex)

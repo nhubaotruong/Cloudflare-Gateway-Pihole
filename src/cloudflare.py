@@ -93,7 +93,7 @@ async def create_gateway_policy(
             "action": "block",
             "enabled": True,
             "filters": ["dns"],
-            "traffic": "or".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
+            "traffic": " or ".join([f"any(dns.domains[*] in ${l})" for l in list_ids]),
             "rule_settings": {
                 "block_page_enabled": False,
             },

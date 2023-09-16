@@ -1,7 +1,7 @@
 name: Add Rules to Cloudflare Gateway
 on:
   schedule:
-    - cron: "10 19 * * *"
+    - cron: "10 20 * * *"
   push:
     branches:
       - main
@@ -17,17 +17,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Python
-        uses: actions/setup-python@v4
+      # - name: Install Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: 3.11
+
+      # - name: Install Dependencies
+      #   run: pip install -r requirements.txt
+
+      - name: Compile go
+        uses: actions/setup-go@v4
         with:
-          python-version: 3.11
-
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
-
-      - name: Cloudflare Gateway Zero Trust
-        run: python main.py
+          go-version: "stable"
+          check-latest: true
+      - name: Build
+        run: go build
+      - name: Run
+        run: ./cloudflare_pihole
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
           PYTHONDONTWRITEBYTECODE: 1
+
+      # - name: Cloudflare Gateway Zero Trust
+      #   run: python main.py
+      # env:
+      #   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      #   CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
+      #   PYTHONDONTWRITEBYTECODE: 1

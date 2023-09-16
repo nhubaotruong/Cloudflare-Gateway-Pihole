@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -102,5 +103,34 @@ func convert_to_domain_set(domains []string) map[string]bool {
 		}
 		unique_domains[domain] = true
 	}
-	return unique_domains
+	return get_least_specific_subdomains(unique_domains)
+}
+
+func get_least_specific_subdomains(domains map[string]bool) map[string]bool {
+	domain_map := make(map[string][][]string)
+	for domain := range domains {
+		split_domain := strings.Split(domain, ".")
+		if len(split_domain) < 2 {
+			continue
+		}
+		base_domain := strings.Join(split_domain[len(split_domain)-2:], ".")
+		domain_map[base_domain] = append(domain_map[base_domain], split_domain)
+	}
+	// Sort subdomains by length
+	for _, subdomains := range domain_map {
+		sort.Slice(subdomains, func(i, j int) bool {
+			return len(subdomains[i]) < len(subdomains[j])
+		})
+	}
+	// Get least specific subdomains
+	least_specific_domains := make(map[string]bool)
+	for _, subdomains := range domain_map {
+		min_length := len(subdomains[0])
+		for _, subdomain := range subdomains {
+			if len(subdomain) == min_length {
+				least_specific_domains[strings.Join(subdomain, ".")] = true
+			}
+		}
+	}
+	return least_specific_domains
 }

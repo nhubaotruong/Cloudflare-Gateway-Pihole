@@ -26,7 +26,21 @@ func main() {
 	for k := range black_list_set {
 		black_list_list = append(black_list_list, k)
 	}
+	// Write to file
+	// file, err := os.Create("least_specific_domains.txt")
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
+	// defer file.Close()
+	// for _, v := range black_list_list {
+	// 	file.WriteString(v + "\n")
+	// }
+
+	// Sort
 	slices.Sort(black_list_list)
+
+	fmt.Printf("Total %d domains\n", len(black_list_list))
 
 	// Get cf lists
 	prefix := "[AdBlock-DNS Block List]"

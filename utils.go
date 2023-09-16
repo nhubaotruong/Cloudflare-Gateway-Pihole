@@ -82,7 +82,8 @@ func convert_to_domain_set(domains []string) map[string]bool {
 			continue
 		}
 		// convert to domains
-		linex = strings.ToLower(strings.Split(linex, "#")[0])
+		linex = strings.ToLower(linex)
+		linex = strings.Split(linex, "#")[0]
 		linex = strings.Split(linex, "^")[0]
 		linex = strings.Split(linex, "$")[0]
 		linex = strings.ReplaceAll(linex, "\r", "")

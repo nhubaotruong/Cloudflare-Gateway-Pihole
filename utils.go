@@ -73,7 +73,7 @@ var replace_pattern = regexp.MustCompile(`(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@
 var domain_pattern = regexp.MustCompile(`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))*$`)
 var ip_pattern = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
 
-func convert_to_domain_set(domains []string) map[string]bool {
+func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
 	unique_domains := make(map[string]bool)
 	for _, line := range domains {
 		// skip comments and empty lines
@@ -103,6 +103,9 @@ func convert_to_domain_set(domains []string) map[string]bool {
 			continue
 		}
 		unique_domains[domain] = true
+	}
+	if skip_filter {
+		return unique_domains
 	}
 	return get_least_specific_subdomains(unique_domains)
 }

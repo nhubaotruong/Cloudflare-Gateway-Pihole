@@ -16,7 +16,7 @@ func main() {
 	}
 	black_list := read_domain_urls("lists.txt")
 	white_list := read_domain_urls("whitelists.txt")
-	black_list_set := convert_to_domain_set(black_list, false)
+	black_list_set := convert_to_domain_set(black_list, true)
 	white_list_set := convert_to_domain_set(white_list, true)
 	// black_list_set - white_list_set
 	for k := range white_list_set {

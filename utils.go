@@ -1,43 +1,43 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"net/http"
+	"log"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 
+	"github.com/imroc/req/v3"
 	"golang.org/x/net/idna"
 )
 
 func read_domain_urls(file_name string) []string {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	// read file lists.txt into a list
-	file, err := os.Open(file_name)
+	// Open file
+	content, err := os.ReadFile(file_name)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatalln(err.Error())
 	}
-	defer file.Close()
-	// Read all lines
-	scanner := bufio.NewScanner(file)
-	result := [][]string{}
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#") || text == "" {
+	lines := strings.Split(string(content), "\n")
+	filtered_line := []string{}
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
+		filtered_line = append(filtered_line, line)
+	}
+
+	// Read all lines
+	var wg sync.WaitGroup
+	result := make([][]string, len(filtered_line))
+	client := req.NewClient()
+	for i, line := range filtered_line {
 		wg.Add(1)
-		go func(url string) {
+		go func(url string, i int) {
 			defer wg.Done()
-			content := download_url(url)
-			mu.Lock()
-			result = append(result, content)
-			mu.Unlock()
-		}(text)
+			content := download_url(url, *client)
+			result[i] = content
+		}(line, i)
 	}
 	wg.Wait()
 
@@ -49,21 +49,14 @@ func read_domain_urls(file_name string) []string {
 	return flatterned
 }
 
-func download_url(url string) []string {
-	resp, err := http.Get(url)
-	if err != nil || resp.StatusCode != 200 {
-		fmt.Println(err.Error())
+func download_url(url string, client req.Client) []string {
+	resp := client.Get(url).Do()
+	if resp.StatusCode != 200 {
+		log.Println("Error downloading", url, ". Status code", resp.StatusCode)
 		return []string{}
 	}
-	defer resp.Body.Close()
-	// Read response text
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return []string{}
-	}
-	body_text := string(body)
-	fmt.Println("Downloaded", url, ". File size", len(body_text))
+	body_text := resp.String()
+	log.Println("Downloaded", url, ". File size", len(body_text))
 	splitted_body := strings.Split(body_text, "\n")
 	return splitted_body
 }
@@ -93,7 +86,7 @@ func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
 		// Convert idna
 		domain, err := idna.ToASCII(linex)
 		if err != nil {
-			fmt.Println("Error encoding domain:", err.Error())
+			log.Println("Error encoding domain:", err.Error())
 			continue
 		}
 

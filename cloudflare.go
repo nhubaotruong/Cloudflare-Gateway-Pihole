@@ -1,14 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/imroc/req/v3"
 )
 
 type headerRoundTripper struct {
@@ -24,46 +24,33 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 var (
-	httpClient *http.Client
+	httpClient *req.Client
 	once       sync.Once
 )
 
-func get_http_client() *http.Client {
+func get_http_client() *req.Client {
 	once.Do(func() {
-		httpClient = &http.Client{
-			Transport: &headerRoundTripper{
-				headers: http.Header{
-					"Authorization": {"Bearer " + os.Getenv("CF_API_TOKEN")},
-				},
-				rt: http.DefaultTransport,
-			},
-		}
+		httpClient = req.NewClient()
+		httpClient.SetCommonBearerAuthToken(os.Getenv("CF_API_TOKEN"))
+		httpClient.SetBaseURL("https://api.cloudflare.com")
+		httpClient.SetCommonContentType("application/json")
+		httpClient.SetCommonHeader("Accept", "application/json")
 	})
 	return httpClient
 }
 
 func get_cf_lists(name_prefix string) []interface{} {
 	client := get_http_client()
-	resp, err := client.Get(fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER")))
-	if err != nil {
-		fmt.Println(err.Error())
-		return []interface{}{}
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return []interface{}{}
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
+	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER"))).Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response get_cf_lists", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatalln("Error unmarshalling json", err.Error())
 		return []interface{}{}
 	}
 	// Get lists
@@ -91,92 +78,56 @@ func create_cf_list(name string, domains []string) interface{} {
 		"type":        "DOMAIN",
 		"items":       items,
 	}
-	req_json_bytes, err := json.Marshal(req_json)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	body_io_reader := strings.NewReader(string(req_json_bytes))
-	resp, err := client.Post(fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER")), "application/json", body_io_reader)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
+	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER")))
+	request.SetBodyJsonMarshal(req_json)
+	resp := request.Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response create_cf_list", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
+
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		log.Fatalln("Error unmarshalling json", err.Error())
+		return []interface{}{}
 	}
 	return result.(map[string]interface{})["result"]
 }
 
 func delete_cf_list(list_id string) interface{} {
 	client := get_http_client()
-	resp, err := client.Do(&http.Request{
-		Method: "DELETE",
-		URL:    &url.URL{Scheme: "https", Host: "api.cloudflare.com", Path: fmt.Sprintf("/client/v4/accounts/%s/gateway/lists/%s", os.Getenv("CF_IDENTIFIER"), list_id)},
-	})
-	if err != nil {
-		fmt.Println(err.Error())
-		return false
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return false
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
+	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists/%s", os.Getenv("CF_IDENTIFIER"), list_id)).Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response delete_cf_list", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
-		return false
+		log.Fatalln("Error unmarshalling json", err.Error())
+		return []interface{}{}
 	}
 	return result.(map[string]interface{})["result"]
 }
 
 func get_gateway_policies(name_prefix string) []interface{} {
 	client := get_http_client()
-	resp, err := client.Get(fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER")))
-	if err != nil {
-		fmt.Println(err.Error())
+	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER"))).Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response get_gateway_policies", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return []interface{}{}
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
-		return []interface{}{}
-	}
+
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatalln("Error unmarshalling json", err.Error())
 		return []interface{}{}
 	}
-	// Get lists
 	lists := result.(map[string]interface{})["result"].([]interface{})
 	// Filter lists
 	filtered_lists := []interface{}{}
@@ -206,33 +157,19 @@ func create_gateway_policy(name string, list_ids []string) interface{} {
 			"block_page_enabled": false,
 		},
 	}
-	req_json_bytes, err := json.Marshal(req_json)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	body_io_reader := strings.NewReader(string(req_json_bytes))
-	resp, err := client.Post(fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER")), "application/json", body_io_reader)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
+	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER")))
+	request.SetBodyJsonMarshal(req_json)
+	resp := request.Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response create_gateway_policy", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		log.Fatalln("Error unmarshalling json", err.Error())
+		return []interface{}{}
 	}
 	return result.(map[string]interface{})["result"]
 }
@@ -249,37 +186,19 @@ func update_gateway_policy(name string, policy_id string, list_ids []string) int
 		"enabled": true,
 		"traffic": strings.Join(traffic, " or "),
 	}
-	req_json_bytes, err := json.Marshal(req_json)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	body_io_reader := strings.NewReader(string(req_json_bytes))
-	resp, err := client.Do(&http.Request{
-		Method: "PUT",
-		URL:    &url.URL{Scheme: "https", Host: "api.cloudflare.com", Path: fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id)},
-		Body:   io.NopCloser(body_io_reader),
-	})
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-	if resp.StatusCode != 200 {
-		fmt.Println(string(body))
+	request := client.Put(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id))
+	request.SetBodyJsonMarshal(req_json)
+	resp := request.Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response update_gateway_policy", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
 	}
 	// Read body as marshalled json
 	var result interface{}
-	err = json.Unmarshal(body, &result)
+	err := resp.UnmarshalJson(&result)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		log.Fatalln("Error unmarshalling json", err.Error())
+		return []interface{}{}
 	}
 	return result.(map[string]interface{})["result"]
 }
@@ -291,14 +210,10 @@ func delete_gateway_policy(policy_name_prefix string) int {
 		return 0
 	}
 	policy_id := policies[0].(map[string]interface{})["id"].(string)
-	resp, err := client.Do(&http.Request{
-		Method: "DELETE",
-		URL:    &url.URL{Scheme: "https", Host: "api.cloudflare.com", Path: fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id)},
-	})
-	if err != nil {
-		fmt.Println(err.Error())
+	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id)).Do()
+	if resp.Err != nil || resp.StatusCode != 200 {
+		log.Fatalln("Error response delete_gateway_policy", resp.Err.Error(), "body", resp.String())
 		return 0
 	}
-	defer resp.Body.Close()
 	return 1
 }

@@ -28,4 +28,4 @@ https://raw.githubusercontent.com/d3ward/toolz/master/src/d3host.txt
 #https://raw.githubusercontent.com/badmojr/1Hosts/master/Lite/domains.wildcards
 https://raw.githubusercontent.com/tiuxo/hosts/master/ads
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
-https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
+#https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt

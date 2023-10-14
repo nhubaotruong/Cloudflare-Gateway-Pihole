@@ -4,19 +4,11 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"slices"
 	"sync"
 )
 
 func main() {
-	_, has_cf_api_token := os.LookupEnv("CF_API_TOKEN")
-	_, has_cf_identifier := os.LookupEnv("CF_IDENTIFIER")
-	if !(has_cf_api_token && has_cf_identifier) {
-		log.Fatalln("Please set CF_API_TOKEN and CF_IDENTIFIER")
-		return
-	}
-
 	// Run both black_list and white_list in parallel
 	var wg sync.WaitGroup
 	black_list_set := make(map[string]bool)
@@ -25,7 +17,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		black_list := read_domain_urls("lists.txt")
-		black_list_set = convert_to_domain_set(black_list, true)
+		black_list_set = convert_to_domain_set(black_list, false)
 	}()
 	go func() {
 		defer wg.Done()
@@ -49,7 +41,7 @@ func main() {
 	log.Println("Total", len(black_list_list), "domains")
 
 	// Write to file
-	// file, err := os.Create("least_specific_domains.txt")
+	// file, err := os.Create("block_list.txt")
 	// if err != nil {
 	// 	fmt.Println(err.Error())
 	// 	return
@@ -75,9 +67,7 @@ func main() {
 	}
 
 	policy_prefix := fmt.Sprintf("%s Block Ads", prefix)
-	// deleted_policies = await cloudflare.delete_gateway_policy(policy_prefix)
 	deleted_policy := delete_gateway_policy(policy_prefix)
-	// fmt.Printf("Deleted %d gateway policies\n", deleted_policy)
 	log.Println("Deleted", deleted_policy, "gateway policy")
 
 	// Delete cf lists

@@ -3,25 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/imroc/req/v3"
 )
-
-type headerRoundTripper struct {
-	headers http.Header
-	rt      http.RoundTripper
-}
-
-func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	for k, v := range h.headers {
-		req.Header[k] = v
-	}
-	return h.rt.RoundTrip(req)
-}
 
 var (
 	httpClient *req.Client
@@ -30,8 +17,13 @@ var (
 
 func get_http_client() *req.Client {
 	once.Do(func() {
+		cf_api_token, has_cf_api_token := os.LookupEnv("CF_API_TOKEN")
+		_, has_cf_identifier := os.LookupEnv("CF_IDENTIFIER")
+		if !(has_cf_api_token && has_cf_identifier) {
+			log.Fatalln("Please set CF_API_TOKEN and CF_IDENTIFIER")
+		}
 		httpClient = req.NewClient()
-		httpClient.SetCommonBearerAuthToken(os.Getenv("CF_API_TOKEN"))
+		httpClient.SetCommonBearerAuthToken(cf_api_token)
 		httpClient.SetBaseURL("https://api.cloudflare.com")
 		httpClient.SetCommonContentType("application/json")
 		httpClient.SetCommonHeader("Accept", "application/json")

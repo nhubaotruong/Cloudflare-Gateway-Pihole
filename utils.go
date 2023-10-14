@@ -51,8 +51,8 @@ func read_domain_urls(file_name string) []string {
 
 func download_url(url string, client req.Client) []string {
 	resp := client.Get(url).Do()
-	if resp.StatusCode != 200 {
-		log.Println("Error downloading", url, ". Status code", resp.StatusCode)
+	if resp.StatusCode != 200 || resp.Err != nil {
+		log.Fatalln("Error downloading", url, ". Status code", resp.StatusCode)
 		return []string{}
 	}
 	body_text := resp.String()
@@ -99,25 +99,33 @@ func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
 	if skip_filter {
 		return unique_domains
 	}
-	return filter_domain_using_tree(unique_domains)
+	return filter_domain(unique_domains)
 }
 
-func filter_domain_using_tree(domains map[string]bool) map[string]bool {
-	rootNode := NewNode("")
-	for domain := range domains {
-		rootNode.AddDomain(domain)
-	}
-	path := make([]string, 0)
-	result := make([][]string, 0)
-	filtered_domains := make(map[string]bool)
-	rootNode.Dfs(&path, &result)
-	for _, branch := range result {
-		_branch := branch[1:]
-		reversed_branch := make([]string, len(_branch))
-		for i := range _branch {
-			reversed_branch[len(_branch)-1-i] = _branch[i]
+func filter_domain(domains map[string]bool) map[string]bool {
+	splitted_domain_map := make(map[string]map[string]bool)
+	for k := range domains {
+		splitted := strings.Split(k, ".")
+		if len(splitted) < 2 {
+			continue
 		}
-		filtered_domains[strings.Join(reversed_branch, ".")] = true
+		domain_part := strings.Join(splitted[len(splitted)-2:], ".")
+		if _, ok := splitted_domain_map[domain_part]; !ok {
+			splitted_domain_map[domain_part] = make(map[string]bool)
+		}
+		splitted_domain_map[domain_part][k] = true
+	}
+	filtered_domains := make(map[string]bool)
+	for k, v := range splitted_domain_map {
+		if _, ok := v[k]; ok {
+			filtered_domains[k] = true
+		} else if _, ok := v["www."+k]; ok {
+			filtered_domains[k] = true
+		} else {
+			for k2 := range v {
+				filtered_domains[k2] = true
+			}
+		}
 	}
 	return filtered_domains
 }

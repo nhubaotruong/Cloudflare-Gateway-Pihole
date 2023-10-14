@@ -31,7 +31,7 @@ jobs:
           go-version: "stable"
           check-latest: true
       - name: Build
-        run: go build
+        run: go build -ldflags "-s -w"
       - name: Run
         run: ./cloudflare_pihole
         env:

@@ -28,25 +28,27 @@ func read_domain_urls(file_name string) []string {
 	}
 
 	// Read all lines
-	var wg sync.WaitGroup
-	result := make([][]string, len(filtered_line))
+	wg := sync.WaitGroup{}
+	result := []string{}
+	result_chan := make(chan []string)
+	go func() {
+		for content := range result_chan {
+			result = append(result, content...)
+		}
+	}()
 	client := req.NewClient()
 	for i, line := range filtered_line {
 		wg.Add(1)
 		go func(url string, i int) {
 			defer wg.Done()
 			content := download_url(url, *client)
-			result[i] = content
+			result_chan <- content
 		}(line, i)
 	}
 	wg.Wait()
+	close(result_chan)
 
-	// Return flatterned list
-	flatterned := []string{}
-	for _, v := range result {
-		flatterned = append(flatterned, v...)
-	}
-	return flatterned
+	return result
 }
 
 func download_url(url string, client req.Client) []string {
@@ -65,37 +67,59 @@ var replace_pattern = regexp.MustCompile(`(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@
 var domain_pattern = regexp.MustCompile(`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))*$`)
 var ip_pattern = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
 
-func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
-	unique_domains := make(map[string]bool)
-	for _, line := range domains {
-		// skip comments and empty lines
-		linex := strings.TrimSpace(line)
-		if strings.HasPrefix(linex, "#") || strings.HasPrefix(linex, "!") || strings.HasPrefix(linex, "/") || linex == "" {
-			continue
-		}
-		// convert to domains
-		linex = strings.ToLower(linex)
-		linex = strings.Split(linex, "#")[0]
-		linex = strings.Split(linex, "^")[0]
-		linex = strings.Split(linex, "$")[0]
-		linex = strings.ReplaceAll(linex, "\r", "")
-		linex = strings.TrimSpace(linex)
-		linex = strings.TrimPrefix(linex, "*.")
-		linex = strings.TrimPrefix(linex, ".")
-		linex = replace_pattern.ReplaceAllString(linex, "")
-		// Convert idna
-		domain, err := idna.ToASCII(linex)
-		if err != nil {
-			log.Println("Error encoding domain:", err.Error())
-			continue
-		}
-
-		// remove not domains
-		if !domain_pattern.MatchString(domain) || ip_pattern.MatchString(domain) {
-			continue
-		}
-		unique_domains[domain] = true
+func convert_to_domain_format(domain string) string {
+	linex := strings.TrimSpace(domain)
+	if strings.HasPrefix(linex, "#") || strings.HasPrefix(linex, "!") || strings.HasPrefix(linex, "/") || linex == "" {
+		return ""
 	}
+	// convert to domains
+	linex = strings.ToLower(linex)
+	linex = strings.Split(linex, "#")[0]
+	linex = strings.Split(linex, "^")[0]
+	linex = strings.Split(linex, "$")[0]
+	linex = strings.ReplaceAll(linex, "\r", "")
+	linex = strings.TrimSpace(linex)
+	linex = strings.TrimPrefix(linex, "*.")
+	linex = strings.TrimPrefix(linex, ".")
+	linex = replace_pattern.ReplaceAllString(linex, "")
+	// Convert idna
+	domain_x, err := idna.ToASCII(linex)
+	if err != nil {
+		log.Println("Error encoding domain:", err.Error())
+		return ""
+	}
+
+	// Check if domain
+	if !domain_pattern.MatchString(domain_x) || ip_pattern.MatchString(domain_x) {
+		return ""
+	}
+	return domain_x
+}
+
+func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
+	unique_domains := map[string]bool{}
+	domainChan := make(chan string)
+	// Start a goroutine to read from the channel and write to the map
+	go func() {
+		for domain := range domainChan {
+			if domain != "" {
+				unique_domains[domain] = true
+			}
+		}
+	}()
+	wg := sync.WaitGroup{}
+	for _, line := range domains {
+		// Run convert_to_domain_format in parallel
+		wg.Add(1)
+		go func(line string) {
+			defer wg.Done()
+			domain := convert_to_domain_format(line)
+			domainChan <- domain
+		}(line)
+	}
+	wg.Wait()
+	close(domainChan)
+
 	if skip_filter {
 		return unique_domains
 	}
@@ -103,7 +127,7 @@ func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
 }
 
 func filter_domain(domains map[string]bool) map[string]bool {
-	splitted_domain_map := make(map[string]map[string]bool)
+	splitted_domain_map := map[string]map[string]bool{}
 	for k := range domains {
 		splitted := strings.Split(k, ".")
 		if len(splitted) < 2 {
@@ -111,11 +135,11 @@ func filter_domain(domains map[string]bool) map[string]bool {
 		}
 		domain_part := strings.Join(splitted[len(splitted)-2:], ".")
 		if _, ok := splitted_domain_map[domain_part]; !ok {
-			splitted_domain_map[domain_part] = make(map[string]bool)
+			splitted_domain_map[domain_part] = map[string]bool{}
 		}
 		splitted_domain_map[domain_part][k] = true
 	}
-	filtered_domains := make(map[string]bool)
+	filtered_domains := map[string]bool{}
 	for k, v := range splitted_domain_map {
 		if _, ok := v[k]; ok {
 			filtered_domains[k] = true

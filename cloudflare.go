@@ -11,17 +11,19 @@ import (
 )
 
 var (
-	httpClient *req.Client
-	once       sync.Once
+	httpClient    *req.Client
+	once          sync.Once
+	cf_identifier string
 )
 
 func get_http_client() *req.Client {
 	once.Do(func() {
 		cf_api_token, has_cf_api_token := os.LookupEnv("CF_API_TOKEN")
-		_, has_cf_identifier := os.LookupEnv("CF_IDENTIFIER")
+		cf_identifier_1, has_cf_identifier := os.LookupEnv("CF_IDENTIFIER")
 		if !(has_cf_api_token && has_cf_identifier) {
 			log.Fatalln("Please set CF_API_TOKEN and CF_IDENTIFIER")
 		}
+		cf_identifier = cf_identifier_1
 		httpClient = req.NewClient()
 		httpClient.SetCommonBearerAuthToken(cf_api_token)
 		httpClient.SetBaseURL("https://api.cloudflare.com")
@@ -33,7 +35,7 @@ func get_http_client() *req.Client {
 
 func get_cf_lists(name_prefix string) []interface{} {
 	client := get_http_client()
-	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER"))).Do()
+	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", cf_identifier)).Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
 		log.Fatalln("Error response get_cf_lists", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
@@ -70,7 +72,7 @@ func create_cf_list(name string, domains []string) interface{} {
 		"type":        "DOMAIN",
 		"items":       items,
 	}
-	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", os.Getenv("CF_IDENTIFIER")))
+	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", cf_identifier))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
@@ -90,7 +92,7 @@ func create_cf_list(name string, domains []string) interface{} {
 
 func delete_cf_list(list_id string) interface{} {
 	client := get_http_client()
-	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists/%s", os.Getenv("CF_IDENTIFIER"), list_id)).Do()
+	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists/%s", cf_identifier, list_id)).Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
 		log.Fatalln("Error response delete_cf_list", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
@@ -107,7 +109,7 @@ func delete_cf_list(list_id string) interface{} {
 
 func get_gateway_policies(name_prefix string) []interface{} {
 	client := get_http_client()
-	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER"))).Do()
+	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", cf_identifier)).Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
 		log.Fatalln("Error response get_gateway_policies", resp.Err.Error(), "body", resp.String())
 		return []interface{}{}
@@ -149,7 +151,7 @@ func create_gateway_policy(name string, list_ids []string) interface{} {
 			"block_page_enabled": false,
 		},
 	}
-	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", os.Getenv("CF_IDENTIFIER")))
+	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", cf_identifier))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
@@ -178,7 +180,7 @@ func update_gateway_policy(name string, policy_id string, list_ids []string) int
 		"enabled": true,
 		"traffic": strings.Join(traffic, " or "),
 	}
-	request := client.Put(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id))
+	request := client.Put(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", cf_identifier, policy_id))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
@@ -202,7 +204,7 @@ func delete_gateway_policy(policy_name_prefix string) int {
 		return 0
 	}
 	policy_id := policies[0].(map[string]interface{})["id"].(string)
-	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", os.Getenv("CF_IDENTIFIER"), policy_id)).Do()
+	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", cf_identifier, policy_id)).Do()
 	if resp.Err != nil || resp.StatusCode != 200 {
 		log.Fatalln("Error response delete_gateway_policy", resp.Err.Error(), "body", resp.String())
 		return 0

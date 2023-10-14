@@ -3,14 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"slices"
 	"sync"
 )
 
 func main() {
 	// Run both black_list and white_list in parallel
-	var wg sync.WaitGroup
+	wg := sync.WaitGroup{}
 	black_list_set := make(map[string]bool)
 	white_list_set := make(map[string]bool)
 	wg.Add(2)
@@ -30,6 +29,7 @@ func main() {
 	for k := range white_list_set {
 		delete(black_list_set, k)
 	}
+
 	black_list_list := []string{}
 	for k := range black_list_set {
 		black_list_list = append(black_list_list, k)
@@ -84,8 +84,13 @@ func main() {
 	// Create cf lists by 1000 chunks
 	chunk_size := 1000
 	chunk_counter := 0
-	new_cf_lists_length := int(math.Ceil(float64(len(black_list_list)) / float64(chunk_size)))
-	new_cf_lists := make([]interface{}, new_cf_lists_length)
+	new_cf_lists := []interface{}{}
+	new_cf_lists_chan := make(chan interface{})
+	go func() {
+		for content := range new_cf_lists_chan {
+			new_cf_lists = append(new_cf_lists, content)
+		}
+	}()
 	for i := 0; i < len(black_list_list); i += chunk_size {
 		end := i + chunk_size
 		if end > len(black_list_list) {
@@ -94,14 +99,15 @@ func main() {
 		chunk_counter += 1
 		name := fmt.Sprintf("%s %d", prefix, chunk_counter)
 		wg.Add(1)
-		go func(name string, list []string, cf_lists *[]interface{}, chunk_counter int) {
+		go func(name string, list []string) {
 			defer wg.Done()
 			log.Println("Creating list", name)
 			cf_list := create_cf_list(name, list)
-			(*cf_lists)[chunk_counter-1] = cf_list
-		}(name, black_list_list[i:end], &new_cf_lists, chunk_counter)
+			new_cf_lists_chan <- cf_list
+		}(name, black_list_list[i:end])
 	}
 	wg.Wait()
+	close(new_cf_lists_chan)
 
 	// Create cf policies
 	cf_policies := get_gateway_policies(policy_prefix)

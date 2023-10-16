@@ -41,15 +41,7 @@ func main() {
 	log.Println("Total", len(black_list_list), "domains")
 
 	// Write to file
-	// file, err := os.Create("block_list.txt")
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
-	// defer file.Close()
-	// for _, v := range black_list_list {
-	// 	file.WriteString(v + "\n")
-	// }
+	// os.WriteFile("block_list.txt", []byte(strings.Join(black_list_list, "\n")), 0644)
 	// return
 
 	// Get cf lists

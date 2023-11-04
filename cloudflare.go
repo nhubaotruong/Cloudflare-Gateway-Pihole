@@ -36,9 +36,10 @@ func get_http_client() *req.Client {
 func get_cf_lists(name_prefix string) []interface{} {
 	client := get_http_client()
 	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", cf_identifier)).Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response get_cf_lists", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response get_cf_lists", resp.StatusCode, "body", resp.String())
 	}
 	// Read body as marshalled json
 	var result interface{}
@@ -75,9 +76,10 @@ func create_cf_list(name string, domains []string) interface{} {
 	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists", cf_identifier))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response create_cf_list", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response create_cf_list", resp.StatusCode, "body", resp.String())
 	}
 
 	// Read body as marshalled json
@@ -93,9 +95,10 @@ func create_cf_list(name string, domains []string) interface{} {
 func delete_cf_list(list_id string) interface{} {
 	client := get_http_client()
 	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/lists/%s", cf_identifier, list_id)).Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response delete_cf_list", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response delete_cf_list", resp.StatusCode, "body", resp.String())
 	}
 	// Read body as marshalled json
 	var result interface{}
@@ -110,9 +113,10 @@ func delete_cf_list(list_id string) interface{} {
 func get_gateway_policies(name_prefix string) []interface{} {
 	client := get_http_client()
 	resp := client.Get(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", cf_identifier)).Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response get_gateway_policies", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response get_gateway_policies", resp.StatusCode, "body", resp.String())
 	}
 
 	// Read body as marshalled json
@@ -154,9 +158,10 @@ func create_gateway_policy(name string, list_ids []string) interface{} {
 	request := client.Post(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules", cf_identifier))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response create_gateway_policy", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response create_gateway_policy", resp.StatusCode, "body", resp.String())
 	}
 	// Read body as marshalled json
 	var result interface{}
@@ -183,9 +188,10 @@ func update_gateway_policy(name string, policy_id string, list_ids []string) int
 	request := client.Put(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", cf_identifier, policy_id))
 	request.SetBodyJsonMarshal(req_json)
 	resp := request.Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response update_gateway_policy", resp.Err.Error(), "body", resp.String())
-		return []interface{}{}
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response update_gateway_policy", resp.StatusCode, "body", resp.String())
 	}
 	// Read body as marshalled json
 	var result interface{}
@@ -205,8 +211,11 @@ func delete_gateway_policy(policy_name_prefix string) int {
 	}
 	policy_id := policies[0].(map[string]interface{})["id"].(string)
 	resp := client.Delete(fmt.Sprintf("/client/v4/accounts/%s/gateway/rules/%s", cf_identifier, policy_id)).Do()
-	if resp.Err != nil || resp.StatusCode != 200 {
+	if resp.Err != nil {
 		log.Fatalln("Error response delete_gateway_policy", resp.Err.Error(), "body", resp.String())
+		return 0
+	} else if resp.StatusCode != 200 {
+		log.Fatalln("Error response delete_gateway_policy", resp.StatusCode, "body", resp.String())
 		return 0
 	}
 	return 1

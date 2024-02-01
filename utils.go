@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"regexp"
@@ -59,7 +60,11 @@ func download_url(url string, client req.Client) []string {
 	}
 	body_text := resp.String()
 	log.Println("Downloaded", url, ". File size", len(body_text))
-	splitted_body := strings.Split(body_text, "\n")
+	scanner := bufio.NewScanner(strings.NewReader(body_text))
+	splitted_body := []string{}
+	for scanner.Scan() {
+		splitted_body = append(splitted_body, scanner.Text())
+	}
 	return splitted_body
 }
 
@@ -93,7 +98,7 @@ func convert_to_domain_format(domain string) string {
 	if !domain_pattern.MatchString(domain_x) || ip_pattern.MatchString(domain_x) {
 		return ""
 	}
-	return domain_x
+	return strings.TrimPrefix(domain_x, "www.")
 }
 
 func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {

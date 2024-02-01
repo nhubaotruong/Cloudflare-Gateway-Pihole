@@ -5,6 +5,8 @@ import (
 	"log"
 	"slices"
 	"sync"
+
+	"github.com/cloudflare/cloudflare-go"
 )
 
 func main() {
@@ -51,7 +53,7 @@ func main() {
 	// Compare existing policies
 	sum := 0
 	for _, v := range cf_lists {
-		sum += int(v.(map[string]interface{})["count"].(float64))
+		sum += int(v.Count)
 	}
 	if len(black_list_list) == sum {
 		log.Println("Lists are the same size, skipping")
@@ -69,15 +71,15 @@ func main() {
 			defer wg.Done()
 			log.Println("Deleting list", name, "- ID:", list_id)
 			delete_cf_list(list_id)
-		}(v.(map[string]interface{})["name"].(string), v.(map[string]interface{})["id"].(string))
+		}(v.Name, v.ID)
 	}
 	wg.Wait()
 
 	// Create cf lists by 1000 chunks
 	chunk_size := 1000
 	chunk_counter := 0
-	new_cf_lists := []interface{}{}
-	new_cf_lists_chan := make(chan interface{})
+	new_cf_lists := []cloudflare.TeamsList{}
+	new_cf_lists_chan := make(chan cloudflare.TeamsList)
 	go func() {
 		for content := range new_cf_lists_chan {
 			new_cf_lists = append(new_cf_lists, content)
@@ -102,19 +104,13 @@ func main() {
 	close(new_cf_lists_chan)
 
 	// Create cf policies
-	cf_policies := get_gateway_policies(policy_prefix)
 	new_cf_lists_ids := []string{}
 	for _, v := range new_cf_lists {
-		new_cf_lists_ids = append(new_cf_lists_ids, v.(map[string]interface{})["id"].(string))
+		new_cf_lists_ids = append(new_cf_lists_ids, v.ID)
 	}
-	if len(cf_policies) == 0 {
-		log.Println("Creating firewall policy")
-		create_gateway_policy(policy_prefix, new_cf_lists_ids)
-	} else if len(cf_policies) != 1 {
-		log.Println("More than one firewall policy found")
-	} else {
-		log.Println("Updating firewall policy")
-		update_gateway_policy(policy_prefix, cf_policies[0].(map[string]interface{})["id"].(string), new_cf_lists_ids)
-	}
+	// expected_cf_list_count := chunk_counter
+	// actual_cf_list_count := len(new_cf_lists_ids)
+	log.Println("Creating firewall policy")
+	create_gateway_policy(policy_prefix, new_cf_lists_ids)
 	log.Println("Done!")
 }

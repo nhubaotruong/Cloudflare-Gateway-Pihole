@@ -16,14 +16,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      # - name: Install Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: 3.11
-
-      # - name: Install Dependencies
-      #   run: pip install -r requirements.txt
+        
+      - name: Set up cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Setup go
         uses: actions/setup-go@v4
@@ -37,10 +39,3 @@ jobs:
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
-
-      # - name: Cloudflare Gateway Zero Trust
-      #   run: python main.py
-      # env:
-      #   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-      #   CF_IDENTIFIER: ${{ secrets.CF_IDENTIFIER }}
-      #   PYTHONDONTWRITEBYTECODE: 1

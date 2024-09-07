@@ -4,33 +4,18 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"sync"
+	"time"
 
 	"github.com/cloudflare/cloudflare-go"
 )
 
-func main() {
-	// Run both black_list and white_list in parallel
-	wg := sync.WaitGroup{}
-	black_list_set := make(map[string]bool)
-	white_list_set := make(map[string]bool)
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		black_list := read_domain_urls("lists.txt")
-		black_list_set = convert_to_domain_set(black_list, false)
-	}()
-	go func() {
-		defer wg.Done()
-		white_list := read_domain_urls("whitelists.txt")
-		white_list_set = convert_to_domain_set(white_list, true)
-	}()
-	wg.Wait()
+var api_sleep_time = 4 * time.Second
 
-	// black_list_set - white_list_set
-	for k := range white_list_set {
-		delete(black_list_set, k)
-	}
+func main() {
+	white_list := read_domain_urls("whitelists.txt")
+	white_list_set := convert_to_domain_set(white_list, true, nil)
+	black_list := read_domain_urls("lists.txt")
+	black_list_set := convert_to_domain_set(black_list, false, white_list_set)
 
 	black_list_list := []string{}
 	for k := range black_list_set {
@@ -66,25 +51,15 @@ func main() {
 
 	// Delete cf lists
 	for _, v := range cf_lists {
-		wg.Add(1)
-		go func(name string, list_id string) {
-			defer wg.Done()
-			log.Println("Deleting list", name, "- ID:", list_id)
-			delete_cf_list(list_id)
-		}(v.Name, v.ID)
+		log.Println("Deleting list", v.Name, "- ID:", v.ID)
+		delete_cf_list(v.ID)
+		time.Sleep(api_sleep_time)
 	}
-	wg.Wait()
 
 	// Create cf lists by 1000 chunks
 	chunk_size := 1000
 	chunk_counter := 0
 	new_cf_lists := []cloudflare.TeamsList{}
-	new_cf_lists_chan := make(chan cloudflare.TeamsList)
-	go func() {
-		for content := range new_cf_lists_chan {
-			new_cf_lists = append(new_cf_lists, content)
-		}
-	}()
 	for i := 0; i < len(black_list_list); i += chunk_size {
 		end := i + chunk_size
 		if end > len(black_list_list) {
@@ -92,16 +67,11 @@ func main() {
 		}
 		chunk_counter += 1
 		name := fmt.Sprintf("%s %d", prefix, chunk_counter)
-		wg.Add(1)
-		go func(name string, list []string) {
-			defer wg.Done()
-			log.Println("Creating list", name)
-			cf_list := create_cf_list(name, list)
-			new_cf_lists_chan <- cf_list
-		}(name, black_list_list[i:end])
+		log.Println("Creating list", name)
+		cf_list := create_cf_list(name, black_list_list[i:end])
+		new_cf_lists = append(new_cf_lists, cf_list)
+		time.Sleep(api_sleep_time)
 	}
-	wg.Wait()
-	close(new_cf_lists_chan)
 
 	// Create cf policies
 	new_cf_lists_ids := []string{}

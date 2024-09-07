@@ -7,7 +7,7 @@ https://raw.githubusercontent.com/AdguardTeam/AdGuardSDNSFilter/master/Filters/e
 https://raw.githubusercontent.com/ookangzheng/blahdns/master/hosts/whitelist.txt
 https://raw.githubusercontent.com/notracking/hosts-blocklists-scripts/master/hostnames.whitelist.txt
 https://raw.githubusercontent.com/AdguardTeam/HttpsExclusions/master/exclusions/mac.txt
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/whitelist-referral.txt
+#https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/whitelist-referral.txt
 https://raw.githubusercontent.com/AdguardTeam/HttpsExclusions/master/exclusions/android.txt
 https://raw.githubusercontent.com/im-sm/Pi-hole-Torrent-Blocklist/main/all-torrent-trackres.txt
 https://raw.githubusercontent.com/freekers/whitelist/master/domains/whitelist.txt

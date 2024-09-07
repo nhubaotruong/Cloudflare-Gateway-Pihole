@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os"
 	"regexp"
@@ -29,25 +28,21 @@ func read_domain_urls(file_name string) []string {
 	}
 
 	// Read all lines
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	result := []string{}
-	result_chan := make(chan []string)
-	go func() {
-		for content := range result_chan {
-			result = append(result, content...)
-		}
-	}()
 	client := req.NewClient()
-	for i, line := range filtered_line {
+	for _, line := range filtered_line {
 		wg.Add(1)
-		go func(url string, i int) {
+		go func(url string) {
 			defer wg.Done()
 			content := download_url(url, *client)
-			result_chan <- content
-		}(line, i)
+			mu.Lock()
+			result = append(result, content...)
+			mu.Unlock()
+		}(line)
 	}
 	wg.Wait()
-	close(result_chan)
 
 	return result
 }
@@ -55,16 +50,12 @@ func read_domain_urls(file_name string) []string {
 func download_url(url string, client req.Client) []string {
 	resp := client.Get(url).Do()
 	if resp.StatusCode != 200 || resp.Err != nil {
-		log.Fatalln("Error downloading", url, ". Status code", resp.StatusCode)
+		log.Println("Error downloading", url, ". Status code", resp.StatusCode)
 		return []string{}
 	}
 	body_text := resp.String()
 	log.Println("Downloaded", url, ". File size", len(body_text))
-	scanner := bufio.NewScanner(strings.NewReader(body_text))
-	splitted_body := []string{}
-	for scanner.Scan() {
-		splitted_body = append(splitted_body, scanner.Text())
-	}
+	splitted_body := strings.Split(body_text, "\n")
 	return splitted_body
 }
 
@@ -101,29 +92,15 @@ func convert_to_domain_format(domain string) string {
 	return strings.TrimPrefix(domain_x, "www.")
 }
 
-func convert_to_domain_set(domains []string, skip_filter bool) map[string]bool {
+func convert_to_domain_set(domains []string, skip_filter bool, white_list map[string]bool) map[string]bool {
 	unique_domains := map[string]bool{}
-	domainChan := make(chan string)
-	// Start a goroutine to read from the channel and write to the map
-	go func() {
-		for domain := range domainChan {
-			if domain != "" {
-				unique_domains[domain] = true
-			}
-		}
-	}()
-	wg := sync.WaitGroup{}
 	for _, line := range domains {
-		// Run convert_to_domain_format in parallel
-		wg.Add(1)
-		go func(line string) {
-			defer wg.Done()
-			domain := convert_to_domain_format(line)
-			domainChan <- domain
-		}(line)
+		domain := convert_to_domain_format(line)
+		_, is_in_white_list := white_list[domain]
+		if domain != "" && !is_in_white_list {
+			unique_domains[domain] = true
+		}
 	}
-	wg.Wait()
-	close(domainChan)
 
 	if skip_filter {
 		return unique_domains

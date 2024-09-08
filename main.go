@@ -68,7 +68,7 @@ func exec() int {
 	for _, v := range cf_lists {
 		log.Println("Deleting list", v.Name, "- ID:", v.ID)
 		delete_cf_list(v.ID)
-		// time.Sleep(api_sleep_time)
+		time.Sleep(api_sleep_time)
 	}
 
 	// Create cf lists by 1000 chunks
@@ -85,7 +85,7 @@ func exec() int {
 		log.Println("Creating list", name)
 		cf_list := create_cf_list(name, black_list_list[i:end])
 		new_cf_lists = append(new_cf_lists, cf_list)
-		// time.Sleep(api_sleep_time)
+		time.Sleep(api_sleep_time)
 	}
 
 	// Create cf policies

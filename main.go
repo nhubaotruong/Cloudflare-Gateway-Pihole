@@ -12,6 +12,21 @@ import (
 var api_sleep_time = 4 * time.Second
 
 func main() {
+	for {
+		if exec() == 0 {
+			break
+		}
+		time.Sleep(api_sleep_time)
+	}
+}
+
+func exec() int {
+	defer func() int {
+		if r := recover(); r != nil {
+			return 1
+		}
+		return 0
+	}()
 	white_list := read_domain_urls("whitelists.txt")
 	white_list_set := convert_to_domain_set(white_list, true, nil)
 	black_list := read_domain_urls("lists.txt")
@@ -29,7 +44,7 @@ func main() {
 
 	// Write to file
 	// os.WriteFile("block_list.txt", []byte(strings.Join(black_list_list, "\n")), 0644)
-	// return
+	// return 0
 
 	// Get cf lists
 	prefix := "[AdBlock-DNS Block List]"
@@ -42,7 +57,7 @@ func main() {
 	}
 	if len(black_list_list) == sum {
 		log.Println("Lists are the same size, skipping")
-		return
+		return 0
 	}
 
 	policy_prefix := fmt.Sprintf("%s Block Ads", prefix)
@@ -53,7 +68,7 @@ func main() {
 	for _, v := range cf_lists {
 		log.Println("Deleting list", v.Name, "- ID:", v.ID)
 		delete_cf_list(v.ID)
-		time.Sleep(api_sleep_time)
+		// time.Sleep(api_sleep_time)
 	}
 
 	// Create cf lists by 1000 chunks
@@ -70,7 +85,7 @@ func main() {
 		log.Println("Creating list", name)
 		cf_list := create_cf_list(name, black_list_list[i:end])
 		new_cf_lists = append(new_cf_lists, cf_list)
-		time.Sleep(api_sleep_time)
+		// time.Sleep(api_sleep_time)
 	}
 
 	// Create cf policies
@@ -78,9 +93,14 @@ func main() {
 	for _, v := range new_cf_lists {
 		new_cf_lists_ids = append(new_cf_lists_ids, v.ID)
 	}
-	// expected_cf_list_count := chunk_counter
-	// actual_cf_list_count := len(new_cf_lists_ids)
+	expected_cf_list_count := chunk_counter
+	actual_cf_list_count := len(new_cf_lists_ids)
+	if expected_cf_list_count != actual_cf_list_count {
+		log.Println("Expected", expected_cf_list_count, "lists, but got", actual_cf_list_count)
+		return 1
+	}
 	log.Println("Creating firewall policy")
 	create_gateway_policy(policy_prefix, new_cf_lists_ids)
 	log.Println("Done!")
+	return 0
 }

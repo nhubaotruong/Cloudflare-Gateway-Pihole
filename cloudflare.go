@@ -102,6 +102,7 @@ func create_gateway_policy(name string, list_ids []string) {
 		RuleSettings: cloudflare.TeamsRuleSettings{
 			BlockPageEnabled: false,
 		},
+		Precedence: 5000,
 	}
 	_, err := cf_client.TeamsCreateRule(ctx, account_id, teams_rule)
 	if err != nil {

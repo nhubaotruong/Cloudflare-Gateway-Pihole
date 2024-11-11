@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.6
 
 require (
-	github.com/cloudflare/cloudflare-go v0.108.0
+	github.com/cloudflare/cloudflare-go v0.109.0
 	github.com/imroc/req/v3 v3.48.0
 	golang.org/x/net v0.30.0
 )

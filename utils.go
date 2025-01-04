@@ -1,16 +1,77 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"regexp"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/imroc/req/v3"
 	"golang.org/x/net/idna"
 )
+
+var httpClient *http.Client
+
+func init() {
+	// Configure optimized HTTP client
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         dialer.DialContext,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: runtime.GOMAXPROCS(0) + 1, // Match number of CPUs + 1
+		MaxConnsPerHost:     100,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+		DisableCompression:  false,
+		ForceAttemptHTTP2:   true,
+	}
+
+	httpClient = &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+}
+
+// retryableHTTPGet performs HTTP GET with retries
+func retryableHTTPGet(req *http.Request) (*http.Response, error) {
+	maxRetries := 3
+	backoff := 1 * time.Second
+
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			time.Sleep(backoff * time.Duration(i))
+		}
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// Only retry on 5xx server errors
+		if resp.StatusCode >= 500 {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("server error: %d", resp.StatusCode)
+			continue
+		}
+
+		return resp, nil
+	}
+
+	return nil, fmt.Errorf("after %d retries, last error: %v", maxRetries, lastErr)
+}
 
 func read_domain_urls(file_name string) []string {
 	// Open file
@@ -32,12 +93,12 @@ func read_domain_urls(file_name string) []string {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	result := []string{}
-	client := req.NewClient()
+
 	for _, line := range filtered_line {
 		wg.Add(1)
 		go func(url string) {
 			defer wg.Done()
-			content := download_url(url, *client)
+			content := download_url(url)
 			mu.Lock()
 			result = append(result, content...)
 			mu.Unlock()
@@ -48,16 +109,38 @@ func read_domain_urls(file_name string) []string {
 	return result
 }
 
-func download_url(url string, client req.Client) []string {
-	resp := client.Get(url).Do()
-	if resp.StatusCode != 200 || resp.Err != nil {
-		log.Println("Error downloading", url, ". Status code", resp.StatusCode)
+func download_url(url string) []string {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Printf("Error creating request for %s: %v\n", url, err)
 		return []string{}
 	}
-	body_text := resp.String()
-	log.Println("Downloaded", url, ". File size", len(body_text))
-	splitted_body := strings.Split(body_text, "\n")
-	return splitted_body
+
+	// Add common headers
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("Accept", "text/plain,text/html")
+
+	resp, err := retryableHTTPGet(req)
+	if err != nil {
+		log.Printf("Error downloading %s: %v\n", url, err)
+		return []string{}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error downloading %s. Status code: %d\n", url, resp.StatusCode)
+		return []string{}
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body from %s: %v\n", url, err)
+		return []string{}
+	}
+
+	body_text := string(body)
+	log.Printf("Downloaded %s. File size: %d\n", url, len(body_text))
+	return strings.Split(body_text, "\n")
 }
 
 var replace_pattern = regexp.MustCompile(`(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@@\|\|?|\*\.|\*))`)

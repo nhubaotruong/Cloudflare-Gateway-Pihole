@@ -29,7 +29,7 @@ func init() {
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         dialer.DialContext,
 		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: runtime.GOMAXPROCS(0) + 1, // Match number of CPUs + 1
+		MaxIdleConnsPerHost: runtime.NumCPU() + 1, // Match number of CPUs + 1
 		MaxConnsPerHost:     100,
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 10 * time.Second,
@@ -80,7 +80,7 @@ func read_domain_urls(file_name string) []string {
 		log.Fatalln(err.Error())
 	}
 	lines := strings.Split(string(content), "\n")
-	filtered_line := []string{}
+	filtered_line := make([]string, 0, len(lines))
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#") || line == "" {
@@ -89,24 +89,44 @@ func read_domain_urls(file_name string) []string {
 		filtered_line = append(filtered_line, line)
 	}
 
-	// Read all lines
+	// Initialize channels for work distribution
+	numWorkers := runtime.NumCPU() * 2 // Use 2x CPU cores for I/O bound tasks
+	urls := make(chan string, len(filtered_line))
+	results := make(chan []string, len(filtered_line))
+
+	// Start worker pool
 	var wg sync.WaitGroup
-	var mu sync.Mutex
-	result := []string{}
-
-	for _, line := range filtered_line {
+	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go func(url string) {
+		go func() {
 			defer wg.Done()
-			content := download_url(url)
-			mu.Lock()
-			result = append(result, content...)
-			mu.Unlock()
-		}(line)
+			for url := range urls {
+				results <- download_url(url)
+			}
+		}()
 	}
-	wg.Wait()
 
-	return result
+	// Send work to workers
+	go func() {
+		for _, url := range filtered_line {
+			urls <- url
+		}
+		close(urls)
+	}()
+
+	// Wait for all workers to finish in a separate goroutine
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	var finalResult []string
+	for domains := range results {
+		finalResult = append(finalResult, domains...)
+	}
+
+	return finalResult
 }
 
 func download_url(url string) []string {

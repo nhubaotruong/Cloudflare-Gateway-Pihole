@@ -33,7 +33,7 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Build
-        run: go build -ldflags "-s -w"
+        run: go build -ldflags '-s -w -buildid=' -trimpath
       - name: Run
         run: ./cloudflare_pihole
         env:

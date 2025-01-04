@@ -8,12 +8,10 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/imroc/req/v3"
 )
 
 var (
 	account_id    string
-	http_client   *req.Client
 	cf_client     *cloudflare.API
 	cf_identifier *cloudflare.ResourceContainer
 	ctx           context.Context
@@ -27,7 +25,12 @@ func init() {
 	}
 	account_id = account_id_t
 	cf_identifier = cloudflare.AccountIdentifier(account_id)
-	cf_client, _ = cloudflare.NewWithAPIToken(cf_api_token)
+
+	var err error
+	cf_client, err = cloudflare.NewWithAPIToken(cf_api_token)
+	if err != nil {
+		log.Fatalln("Error creating Cloudflare client:", err)
+	}
 	ctx = context.Background()
 }
 

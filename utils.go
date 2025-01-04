@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -93,14 +94,39 @@ func convert_to_domain_format(domain string) string {
 }
 
 func convert_to_domain_set(domains []string, skip_filter bool, white_list map[string]bool) map[string]bool {
-	unique_domains := map[string]bool{}
-	for _, line := range domains {
-		domain := convert_to_domain_format(line)
-		_, is_in_white_list := white_list[domain]
-		if domain != "" && !is_in_white_list {
-			unique_domains[domain] = true
-		}
+	unique_domains := make(map[string]bool, len(domains))
+	var mu sync.Mutex
+
+	// Process domains in parallel
+	workers := runtime.NumCPU()
+	var wg sync.WaitGroup
+	ch := make(chan string, len(domains))
+
+	// Start workers
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for domain := range ch {
+				processed := convert_to_domain_format(domain)
+				if processed != "" {
+					mu.Lock()
+					_, is_in_white_list := white_list[processed]
+					if !is_in_white_list {
+						unique_domains[processed] = true
+					}
+					mu.Unlock()
+				}
+			}
+		}()
 	}
+
+	// Feed domains to workers
+	for _, domain := range domains {
+		ch <- domain
+	}
+	close(ch)
+	wg.Wait()
 
 	if skip_filter {
 		return unique_domains
@@ -109,29 +135,41 @@ func convert_to_domain_set(domains []string, skip_filter bool, white_list map[st
 }
 
 func filter_domain(domains map[string]bool) map[string]bool {
-	splitted_domain_map := map[string]map[string]bool{}
-	for k := range domains {
-		splitted := strings.Split(k, ".")
-		if len(splitted) < 2 {
+	// Pre-allocate maps with estimated capacity
+	splitted_domain_map := make(map[string]map[string]bool, len(domains))
+	filtered_domains := make(map[string]bool, len(domains))
+
+	// Process domains
+	var parts []string
+	for domain := range domains {
+		parts = strings.SplitN(domain, ".", -1)
+		if len(parts) < 2 {
 			continue
 		}
-		domain_part := strings.Join(splitted[len(splitted)-2:], ".")
+		// Get last two parts efficiently
+		domain_part := parts[len(parts)-2] + "." + parts[len(parts)-1]
 		if _, ok := splitted_domain_map[domain_part]; !ok {
-			splitted_domain_map[domain_part] = map[string]bool{}
+			splitted_domain_map[domain_part] = make(map[string]bool, 4) // Small initial capacity for subdomain map
 		}
-		splitted_domain_map[domain_part][k] = true
+		splitted_domain_map[domain_part][domain] = true
 	}
-	filtered_domains := map[string]bool{}
-	for k, v := range splitted_domain_map {
-		if _, ok := v[k]; ok {
-			filtered_domains[k] = true
-		} else if _, ok := v["www."+k]; ok {
-			filtered_domains[k] = true
-		} else {
-			for k2 := range v {
-				filtered_domains[k2] = true
-			}
+
+	// Filter domains
+	var www_domain string
+	for domain_part, subdomains := range splitted_domain_map {
+		if subdomains[domain_part] {
+			filtered_domains[domain_part] = true
+			continue
+		}
+		www_domain = "www." + domain_part
+		if subdomains[www_domain] {
+			filtered_domains[domain_part] = true
+			continue
+		}
+		for subdomain := range subdomains {
+			filtered_domains[subdomain] = true
 		}
 	}
+
 	return filtered_domains
 }

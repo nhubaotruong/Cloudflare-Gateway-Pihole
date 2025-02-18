@@ -27,8 +27,9 @@ func exec() int {
 		}
 		return 0
 	}()
-	white_list := read_domain_urls("whitelists.txt")
-	white_list_set := convert_to_domain_set(white_list, true, nil)
+	white_list_remote := read_domain_urls("whitelists.txt")
+	white_list_static := read_file("whitelists_static.txt")
+	white_list_set := convert_to_domain_set(append(white_list_remote, white_list_static...), true, nil)
 	black_list := read_domain_urls("lists.txt")
 	black_list_set := convert_to_domain_set(black_list, false, white_list_set)
 

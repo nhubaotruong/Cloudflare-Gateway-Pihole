@@ -73,7 +73,7 @@ func retryableHTTPGet(req *http.Request) (*http.Response, error) {
 	return nil, fmt.Errorf("after %d retries, last error: %v", maxRetries, lastErr)
 }
 
-func read_domain_urls(file_name string) []string {
+func read_file(file_name string) []string {
 	// Open file
 	content, err := os.ReadFile(file_name)
 	if err != nil {
@@ -88,6 +88,12 @@ func read_domain_urls(file_name string) []string {
 		}
 		filtered_line = append(filtered_line, line)
 	}
+	return filtered_line
+}
+
+func read_domain_urls(file_name string) []string {
+	// Open file
+	filtered_line := read_file(file_name)
 
 	// Initialize channels for work distribution
 	numWorkers := runtime.NumCPU() * 2 // Use 2x CPU cores for I/O bound tasks

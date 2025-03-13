@@ -20,18 +20,20 @@ var (
 func init() {
 	cf_api_token, has_cf_api_token := os.LookupEnv("CF_API_TOKEN")
 	account_id_t, has_cf_identifier := os.LookupEnv("CF_IDENTIFIER")
-	if !(has_cf_api_token && has_cf_identifier) {
+	if !(has_cf_api_token && has_cf_identifier) && isRunningInGitHubActions() {
 		log.Fatalln("Please set CF_API_TOKEN and CF_IDENTIFIER")
 	}
-	account_id = account_id_t
-	cf_identifier = cloudflare.AccountIdentifier(account_id)
+	if cf_api_token != "" && account_id_t != "" {
+		account_id = account_id_t
+		cf_identifier = cloudflare.AccountIdentifier(account_id)
 
-	var err error
-	cf_client, err = cloudflare.NewWithAPIToken(cf_api_token)
-	if err != nil {
-		log.Fatalln("Error creating Cloudflare client:", err)
+		var err error
+		cf_client, err = cloudflare.NewWithAPIToken(cf_api_token)
+		if err != nil {
+			log.Fatalln("Error creating Cloudflare client:", err)
+		}
+		ctx = context.Background()
 	}
-	ctx = context.Background()
 }
 
 func get_cf_lists(name_prefix string) []cloudflare.TeamsList {

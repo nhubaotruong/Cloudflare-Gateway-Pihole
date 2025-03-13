@@ -43,6 +43,11 @@ func init() {
 	}
 }
 
+func isRunningInGitHubActions() bool {
+	// GitHub Actions sets GITHUB_ACTIONS=true
+	return os.Getenv("GITHUB_ACTIONS") == "true"
+}
+
 // retryableHTTPGet performs HTTP GET with retries
 func retryableHTTPGet(req *http.Request) (*http.Response, error) {
 	maxRetries := 3

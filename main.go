@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"slices"
 	"time"
 
 	"github.com/cloudflare/cloudflare-go"
@@ -33,13 +32,7 @@ func exec() int {
 	black_list := read_domain_urls("lists.txt")
 	black_list_set := convert_to_domain_set(black_list, false, white_list_set)
 
-	black_list_list := []string{}
-	for k := range black_list_set {
-		black_list_list = append(black_list_list, k)
-	}
-
-	// Sort alphabetically
-	slices.Sort(black_list_list)
+	black_list_list := black_list_set.ToSortedList()
 
 	log.Println("Total", len(black_list_list), "domains")
 
@@ -77,10 +70,7 @@ func exec() int {
 	chunk_counter := 0
 	new_cf_lists := []cloudflare.TeamsList{}
 	for i := 0; i < len(black_list_list); i += chunk_size {
-		end := i + chunk_size
-		if end > len(black_list_list) {
-			end = len(black_list_list)
-		}
+		end := min(i+chunk_size, len(black_list_list))
 		chunk_counter += 1
 		name := fmt.Sprintf("%s %d", prefix, chunk_counter)
 		log.Println("Creating list", name)

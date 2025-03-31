@@ -2,11 +2,11 @@ module cloudflare_pihole
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/cloudflare/cloudflare-go v0.115.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (

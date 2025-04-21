@@ -15,17 +15,12 @@ func main() {
 		if exec() == 0 {
 			break
 		}
+		log.Println("Sleeping for", api_sleep_time)
 		time.Sleep(api_sleep_time)
 	}
 }
 
 func exec() int {
-	defer func() int {
-		if r := recover(); r != nil {
-			return 1
-		}
-		return 0
-	}()
 	white_list_remote := read_domain_urls("whitelists.txt")
 	white_list_static := read_file("whitelists_static.txt")
 	white_list_set := convert_to_domain_set(append(white_list_remote, white_list_static...), true, nil)

@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-var api_sleep_time = 4 * time.Second
+var api_sleep_time = 3 * time.Second
 
 func main() {
 	for {
@@ -63,7 +63,7 @@ func exec() int {
 	// Create cf lists by 1000 chunks
 	chunk_size := 1000
 	chunk_counter := 0
-	new_cf_lists := []cloudflare.TeamsList{}
+	new_cf_lists := []zero_trust.GatewayList{}
 	for i := 0; i < len(black_list_list); i += chunk_size {
 		end := min(i+chunk_size, len(black_list_list))
 		chunk_counter += 1

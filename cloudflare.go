@@ -2,19 +2,21 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/option"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
 var (
-	account_id    string
-	cf_client     *cloudflare.API
-	cf_identifier *cloudflare.ResourceContainer
-	ctx           context.Context
+	account_id string
+	cf_client  *cloudflare.Client
+	ctx        context.Context
 )
 
 func init() {
@@ -25,25 +27,25 @@ func init() {
 	}
 	if cf_api_token != "" && account_id_t != "" {
 		account_id = account_id_t
-		cf_identifier = cloudflare.AccountIdentifier(account_id)
+		// cf_identifier = cloudflare.AccountIdentifier(account_id)
 
-		var err error
-		cf_client, err = cloudflare.NewWithAPIToken(cf_api_token)
-		if err != nil {
-			log.Fatalln("Error creating Cloudflare client:", err)
-		}
-		ctx = context.Background()
+		cf_client = cloudflare.NewClient(
+			option.WithAPIToken(cf_api_token),
+		)
 	}
+	ctx = context.Background()
 }
 
-func get_cf_lists(name_prefix string) []cloudflare.TeamsList {
-	lists, _, err := cf_client.ListTeamsLists(ctx, cf_identifier, cloudflare.ListTeamListsParams{})
+func get_cf_lists(name_prefix string) []zero_trust.GatewayList {
+	lists, err := cf_client.ZeroTrust.Gateway.Lists.List(ctx, zero_trust.GatewayListListParams{
+		AccountID: cloudflare.F(account_id),
+	})
 	if err != nil {
 		log.Println("Error response get_cf_lists", err.Error())
-		return []cloudflare.TeamsList{}
+		return []zero_trust.GatewayList{}
 	}
-	filtered_lists := []cloudflare.TeamsList{}
-	for _, v := range lists {
+	filtered_lists := []zero_trust.GatewayList{}
+	for _, v := range lists.Result {
 		if strings.HasPrefix(v.Name, name_prefix) {
 			filtered_lists = append(filtered_lists, v)
 		}
@@ -51,40 +53,57 @@ func get_cf_lists(name_prefix string) []cloudflare.TeamsList {
 	return filtered_lists
 }
 
-func create_cf_list(name string, domains []string) cloudflare.TeamsList {
-	items := []cloudflare.TeamsListItem{}
+func create_cf_list(name string, domains []string) zero_trust.GatewayList {
+	items := []zero_trust.GatewayItemParam{}
 	for _, d := range domains {
-		items = append(items, cloudflare.TeamsListItem{Value: d})
+		items = append(items, zero_trust.GatewayItemParam{Value: cloudflare.F(d)})
 	}
-	req_json := cloudflare.CreateTeamsListParams{
-		Name:        name,
-		Description: "Created by script.",
-		Type:        "DOMAIN",
-		Items:       items,
+	req_params := zero_trust.GatewayListNewParams{
+		AccountID:   cloudflare.F(account_id),
+		Name:        cloudflare.F(name),
+		Description: cloudflare.F("Created by script."),
+		Type:        cloudflare.F(zero_trust.GatewayListNewParamsTypeDomain),
+		Items:       cloudflare.F(items),
 	}
-	cf_list, err := cf_client.CreateTeamsList(ctx, cf_identifier, req_json)
+	cf_list, err := cf_client.ZeroTrust.Gateway.Lists.New(ctx, req_params)
 	if err != nil {
 		log.Println("Error response create_cf_list", err.Error())
-		return cloudflare.TeamsList{}
+		return zero_trust.GatewayList{}
 	}
-	return cf_list
+
+	jsonBytes, err := json.Marshal(cf_list)
+	if err != nil {
+		log.Println("Error marshaling response:", err.Error())
+		return zero_trust.GatewayList{}
+	}
+
+	var result zero_trust.GatewayList
+	if err := result.UnmarshalJSON(jsonBytes); err != nil {
+		log.Println("Error unmarshaling to GatewayList:", err.Error())
+		return zero_trust.GatewayList{}
+	}
+	return result
 }
 
 func delete_cf_list(list_id string) {
-	err := cf_client.DeleteTeamsList(ctx, cf_identifier, list_id)
+	_, err := cf_client.ZeroTrust.Gateway.Lists.Delete(ctx, list_id, zero_trust.GatewayListDeleteParams{
+		AccountID: cloudflare.F(account_id),
+	})
 	if err != nil {
 		log.Println("Error response delete_cf_list", err.Error())
 	}
 }
 
-func get_gateway_policies(name_prefix string) []cloudflare.TeamsRule {
-	policies, err := cf_client.TeamsRules(ctx, account_id)
+func get_gateway_policies(name_prefix string) []zero_trust.GatewayRule {
+	policies, err := cf_client.ZeroTrust.Gateway.Rules.List(ctx, zero_trust.GatewayRuleListParams{
+		AccountID: cloudflare.F(account_id),
+	})
 	if err != nil {
 		log.Println("Error response get_gateway_policies", err.Error())
-		return []cloudflare.TeamsRule{}
+		return []zero_trust.GatewayRule{}
 	}
-	filtered_policies := []cloudflare.TeamsRule{}
-	for _, v := range policies {
+	filtered_policies := []zero_trust.GatewayRule{}
+	for _, v := range policies.Result {
 		if strings.HasPrefix(v.Name, name_prefix) {
 			filtered_policies = append(filtered_policies, v)
 		}
@@ -97,19 +116,20 @@ func create_gateway_policy(name string, list_ids []string) {
 	for _, l := range list_ids {
 		traffic = append(traffic, fmt.Sprintf("any(dns.domains[*] in $%s)", l))
 	}
-	teams_rule := cloudflare.TeamsRule{
-		Name:        name,
-		Description: "Created by script.",
-		Action:      cloudflare.Block,
-		Enabled:     true,
-		Filters:     []cloudflare.TeamsFilterType{cloudflare.DnsFilter},
-		Traffic:     strings.Join(traffic, " or "),
-		RuleSettings: cloudflare.TeamsRuleSettings{
-			BlockPageEnabled: false,
-		},
-		Precedence: 5000,
+	teams_rule := zero_trust.GatewayRuleNewParams{
+		AccountID:   cloudflare.F(account_id),
+		Name:        cloudflare.F(name),
+		Description: cloudflare.F("Created by script."),
+		Action:      cloudflare.F(zero_trust.GatewayRuleNewParamsActionBlock),
+		Enabled:     cloudflare.F(true),
+		Filters:     cloudflare.F([]zero_trust.GatewayFilter{zero_trust.GatewayFilterDNS}),
+		Traffic:     cloudflare.F(strings.Join(traffic, " or ")),
+		RuleSettings: cloudflare.F(zero_trust.RuleSettingParam{
+			BlockPageEnabled: cloudflare.F(true),
+		}),
+		Precedence: cloudflare.F(int64(5000)),
 	}
-	_, err := cf_client.TeamsCreateRule(ctx, account_id, teams_rule)
+	_, err := cf_client.ZeroTrust.Gateway.Rules.New(ctx, teams_rule)
 	if err != nil {
 		log.Println("Error response create_gateway_policy", err.Error())
 	}
@@ -121,7 +141,9 @@ func delete_gateway_policy(policy_name_prefix string) int {
 		return 0
 	}
 	policy_id := policies[0].ID
-	err := cf_client.TeamsDeleteRule(ctx, account_id, policy_id)
+	_, err := cf_client.ZeroTrust.Gateway.Rules.Delete(ctx, policy_id, zero_trust.GatewayRuleDeleteParams{
+		AccountID: cloudflare.F(account_id),
+	})
 	if err != nil {
 		log.Println("Error response delete_gateway_policy", err.Error())
 		return 0

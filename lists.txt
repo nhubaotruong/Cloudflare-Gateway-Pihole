@@ -1,6 +1,6 @@
 https://raw.githubusercontent.com/bigdargon/hostsVN/master/option/domain.txt
-https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts
-https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/threat/hosts
+https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/domain.txt
+https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/threat/domain.txt
 https://raw.githubusercontent.com/luxysiv/hosts/main/hosts.txt
 #https://raw.githubusercontent.com/Yhonay/antipopads/master/hosts
 https://abpvn.com/android/abpvn.txt

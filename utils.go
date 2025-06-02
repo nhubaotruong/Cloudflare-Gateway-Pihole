@@ -174,6 +174,20 @@ func download_url(url string) []string {
 	return strings.Split(body_text, "\n")
 }
 
+var block_nrd_pattern = regexp.MustCompile(`(?i)^[\w\d-]+(bet|casino)\d*\.[\w]{2,}$`)
+
+func get_nrd_domains() DomainSet {
+	raw_domains := download_url("https://raw.githubusercontent.com/xRuffKez/NRD/refs/heads/main/lists/30-day-mini/domains-only/nrd-30day-mini.txt")
+	filtered_domains := []string{}
+	for _, domain := range raw_domains {
+		if block_nrd_pattern.MatchString(domain) {
+			log.Println("NRD:", domain)
+			filtered_domains = append(filtered_domains, domain)
+		}
+	}
+	return convert_to_domain_set(filtered_domains, false, DomainSet{})
+}
+
 var replace_pattern = regexp.MustCompile(`(^([0-9.]+|[0-9a-fA-F:.]+)\s+|^(\|\||@@\|\|?|\*\.|\*))`)
 var domain_pattern = regexp.MustCompile(`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))*$`)
 var ip_pattern = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)

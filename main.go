@@ -26,6 +26,10 @@ func exec() int {
 	white_list_set := convert_to_domain_set(append(white_list_remote, white_list_static...), true, nil)
 	black_list := read_domain_urls("lists.txt")
 	black_list_set := convert_to_domain_set(black_list, false, white_list_set)
+	nrd_domains := get_nrd_domains()
+	for domain := range nrd_domains {
+		black_list_set.Add(domain)
+	}
 
 	black_list_list := black_list_set.ToSortedList()
 
@@ -70,6 +74,10 @@ func exec() int {
 		name := fmt.Sprintf("%s %d", prefix, chunk_counter)
 		log.Println("Creating list", name)
 		cf_list := create_cf_list(name, black_list_list[i:end])
+		if cf_list.ID == "" {
+			log.Println("Failed to create list", name, "- will retry entire process")
+			return 1
+		}
 		new_cf_lists = append(new_cf_lists, cf_list)
 		time.Sleep(api_sleep_time)
 	}
@@ -78,12 +86,6 @@ func exec() int {
 	new_cf_lists_ids := []string{}
 	for _, v := range new_cf_lists {
 		new_cf_lists_ids = append(new_cf_lists_ids, v.ID)
-	}
-	expected_cf_list_count := chunk_counter
-	actual_cf_list_count := len(new_cf_lists_ids)
-	if expected_cf_list_count != actual_cf_list_count {
-		log.Println("Expected", expected_cf_list_count, "lists, but got", actual_cf_list_count)
-		return 1
 	}
 	log.Println("Creating firewall policy")
 	create_gateway_policy(policy_prefix, new_cf_lists_ids)

@@ -181,7 +181,6 @@ func get_nrd_domains() DomainSet {
 	filtered_domains := []string{}
 	for _, domain := range raw_domains {
 		if block_nrd_pattern.MatchString(domain) {
-			log.Println("NRD:", domain)
 			filtered_domains = append(filtered_domains, domain)
 		}
 	}

@@ -26,10 +26,10 @@ func exec() int {
 	white_list_set := convert_to_domain_set(append(white_list_remote, white_list_static...), true, nil)
 	black_list := read_domain_urls("lists.txt")
 	black_list_set := convert_to_domain_set(black_list, false, white_list_set)
-	nrd_domains := get_nrd_domains()
-	for domain := range nrd_domains {
-		black_list_set.Add(domain)
-	}
+	// nrd_domains := get_nrd_domains()
+	// for domain := range nrd_domains {
+	// 	black_list_set.Add(domain)
+	// }
 
 	black_list_list := black_list_set.ToSortedList()
 

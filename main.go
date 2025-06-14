@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
@@ -34,6 +35,11 @@ func exec() int {
 	black_list_list := black_list_set.ToSortedList()
 
 	log.Println("Total", len(black_list_list), "domains")
+
+	if len(black_list_list) > 300000 {
+		log.Println("black_list_list is longer than 300k, exiting with code 129")
+		os.Exit(129)
+	}
 
 	// Write to file
 	// os.WriteFile("block_list.txt", []byte(strings.Join(black_list_list, "\n")), 0644)

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
@@ -12,6 +14,7 @@ import (
 var api_sleep_time = 3 * time.Second
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	for {
 		if exec() == 0 {
 			break
@@ -64,28 +67,66 @@ func exec() int {
 	log.Println("Deleted", deleted_policy, "gateway policy")
 
 	// Delete cf lists
+	var wg sync.WaitGroup
 	for _, v := range cf_lists {
-		log.Println("Deleting list", v.Name, "- ID:", v.ID)
-		delete_cf_list(v.ID)
-		time.Sleep(api_sleep_time)
+		wg.Add(1)
+		go func(list zero_trust.GatewayList) {
+			defer wg.Done()
+			log.Println("Deleting list", list.Name, "- ID:", list.ID)
+			delete_cf_list(list.ID)
+		}(v)
 	}
+	wg.Wait()
 
 	// Create cf lists by 1000 chunks
 	chunk_size := 1000
-	chunk_counter := 0
-	new_cf_lists := []zero_trust.GatewayList{}
+	num_chunks := (len(black_list_list) + chunk_size - 1) / chunk_size
+	resultsChan := make(chan zero_trust.GatewayList, num_chunks)
+	var createWg sync.WaitGroup
+
 	for i := 0; i < len(black_list_list); i += chunk_size {
 		end := min(i+chunk_size, len(black_list_list))
-		chunk_counter += 1
-		name := fmt.Sprintf("%s %d", prefix, chunk_counter)
-		log.Println("Creating list", name)
-		cf_list := create_cf_list(name, black_list_list[i:end])
-		if cf_list.ID == "" {
-			log.Println("Failed to create list", name, "- will retry entire process")
-			return 1
+		name := fmt.Sprintf("%s %d", prefix, (i/chunk_size)+1)
+		createWg.Add(1)
+		go func(name string, chunk []string) {
+			defer createWg.Done()
+			log.Println("Creating list", name)
+			cf_list := create_cf_list(name, chunk)
+			resultsChan <- cf_list
+		}(name, black_list_list[i:end])
+	}
+
+	go func() {
+		createWg.Wait()
+		close(resultsChan)
+	}()
+
+	new_cf_lists := []zero_trust.GatewayList{}
+	var creationFailed bool
+	for result := range resultsChan {
+		if result.ID == "" {
+			creationFailed = true
+		} else {
+			new_cf_lists = append(new_cf_lists, result)
 		}
-		new_cf_lists = append(new_cf_lists, cf_list)
-		time.Sleep(api_sleep_time)
+	}
+
+	if creationFailed {
+		log.Println("One or more lists failed to create, retrying...")
+		// Cleanup lists that were created successfully before retrying
+		if len(new_cf_lists) > 0 {
+			var deleteWg sync.WaitGroup
+			for _, list := range new_cf_lists {
+				deleteWg.Add(1)
+				go func(listToDelete zero_trust.GatewayList) {
+					defer deleteWg.Done()
+					log.Println("Cleaning up created list", listToDelete.Name, "- ID:", listToDelete.ID)
+					delete_cf_list(listToDelete.ID)
+				}(list)
+			}
+			deleteWg.Wait()
+		}
+		return 1
 	}
 
 	// Create cf policies

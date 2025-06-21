@@ -11,16 +11,14 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-var api_sleep_time = 3 * time.Second
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	for {
 		if exec() == 0 {
 			break
 		}
-		log.Println("Sleeping for", api_sleep_time)
-		time.Sleep(api_sleep_time)
+		log.Println("Sleeping for 1 minute")
+		time.Sleep(1 * time.Minute)
 	}
 }
 

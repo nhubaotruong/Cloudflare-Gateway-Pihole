@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/cloudflare/cloudflare-go/v4 v4.5.1
+	github.com/cloudflare/cloudflare-go/v4 v4.6.0
 	golang.org/x/net v0.41.0
 )
 

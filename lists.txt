@@ -51,7 +51,7 @@ https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xia
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/fake-onlydomains.txt
 #https://v.firebog.net/hosts/Easylist.txt
 #https://v.firebog.net/hosts/Easyprivacy.txt
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt
+#https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt
 https://raw.githubusercontent.com/davidonzo/Threat-Intel/master/lists/latestdomains.txt
 https://blocklistproject.github.io/Lists/alt-version/gambling-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/ransomware-nl.txt

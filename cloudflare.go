@@ -54,9 +54,9 @@ func get_cf_lists(name_prefix string) []zero_trust.GatewayList {
 }
 
 func create_cf_list(name string, domains []string) zero_trust.GatewayList {
-	items := []zero_trust.GatewayItemParam{}
+	items := []zero_trust.GatewayListNewParamsItem{}
 	for _, d := range domains {
-		items = append(items, zero_trust.GatewayItemParam{Value: cloudflare.F(d)})
+		items = append(items, zero_trust.GatewayListNewParamsItem{Value: cloudflare.F(d)})
 	}
 	req_params := zero_trust.GatewayListNewParams{
 		AccountID:   cloudflare.F(account_id),

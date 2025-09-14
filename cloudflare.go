@@ -125,7 +125,7 @@ func create_gateway_policy(name string, list_ids []string) {
 		Filters:     cloudflare.F([]zero_trust.GatewayFilter{zero_trust.GatewayFilterDNS}),
 		Traffic:     cloudflare.F(strings.Join(traffic, " or ")),
 		RuleSettings: cloudflare.F(zero_trust.RuleSettingParam{
-			BlockPageEnabled: cloudflare.F(true),
+			BlockPageEnabled: cloudflare.F(false),
 		}),
 		Precedence: cloudflare.F(int64(5000)),
 	}

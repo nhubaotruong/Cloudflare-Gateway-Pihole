@@ -4,7 +4,7 @@ https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/threat/dom
 https://raw.githubusercontent.com/luxysiv/hosts/main/hosts.txt
 #https://raw.githubusercontent.com/Yhonay/antipopads/master/hosts
 https://abpvn.com/android/abpvn.txt
-https://raw.githubusercontent.com/nhubaotruong/Cloudflare-Gateway-Pihole/refs/heads/main/vn-badsite-filter-domains.txt
+#https://raw.githubusercontent.com/nhubaotruong/Cloudflare-Gateway-Pihole/refs/heads/main/vn-badsite-filter-domains.txt
 #https://curbengh.github.io/malware-filter/phishing-filter-domains.txt
 #https://curbengh.github.io/malware-filter/urlhaus-filter-domains-online.txt
 https://raw.githubusercontent.com/nextdns/native-tracking-domains/main/domains/alexa

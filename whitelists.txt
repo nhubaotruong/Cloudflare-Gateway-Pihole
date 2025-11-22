@@ -9,7 +9,7 @@ https://raw.githubusercontent.com/notracking/hosts-blocklists-scripts/master/hos
 https://raw.githubusercontent.com/AdguardTeam/HttpsExclusions/master/exclusions/mac.txt
 #https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/whitelist-referral.txt
 https://raw.githubusercontent.com/AdguardTeam/HttpsExclusions/master/exclusions/android.txt
-https://raw.githubusercontent.com/im-sm/Pi-hole-Torrent-Blocklist/main/all-torrent-trackres.txt
+#https://raw.githubusercontent.com/im-sm/Pi-hole-Torrent-Blocklist/main/all-torrent-trackres.txt
 https://raw.githubusercontent.com/freekers/whitelist/master/domains/whitelist.txt
 https://raw.githubusercontent.com/Dogino/Discord-Phishing-URLs/main/official-domains.txt
 https://raw.githubusercontent.com/AdguardTeam/HttpsExclusions/master/exclusions/firefox.txt

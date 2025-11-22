@@ -22,7 +22,7 @@ https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAd
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Spotify-AdBlock.txt
 https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-Apple-AdBlock.txt
 #https://raw.githubusercontent.com/jerryn70/GoodbyeAds/master/Extension/GoodbyeAds-YouTube-AdBlock.txt
-#https://small.oisd.nl/domainswild2
+https://small.oisd.nl/domainswild2
 #https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling/hosts
 https://someonewhocares.org/hosts/zero/hosts
 https://raw.githubusercontent.com/d3ward/toolz/master/src/d3host.txt
@@ -49,9 +49,9 @@ https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.viv
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.oppo-realme-onlydomains.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xiaomi-onlydomains.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/fake-onlydomains.txt
-#https://v.firebog.net/hosts/Easylist.txt
-#https://v.firebog.net/hosts/Easyprivacy.txt
-#https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt
+https://v.firebog.net/hosts/Easylist.txt
+https://v.firebog.net/hosts/Easyprivacy.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt
 #https://raw.githubusercontent.com/davidonzo/Threat-Intel/master/lists/latestdomains.txt
 #https://blocklistproject.github.io/Lists/alt-version/gambling-nl.txt
 #https://blocklistproject.github.io/Lists/alt-version/ransomware-nl.txt

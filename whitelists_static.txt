@@ -1,2 +1,3 @@
 jnn-pa.googleapis.com
 browser.events.data.msn.com
+browser.events.data.msn.cn

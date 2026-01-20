@@ -108,13 +108,11 @@ func read_domain_urls(file_name string) []string {
 	// Start worker pool
 	var wg sync.WaitGroup
 	for range numWorkers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for url := range urls {
 				results <- download_url(url)
 			}
-		}()
+		})
 	}
 
 	// Send work to workers
@@ -170,7 +168,7 @@ func download_url(url string) []string {
 	}
 
 	body_text := string(body)
-	log.Printf("Downloaded %s. File size: %d\n", url, len(body_text))
+	// log.Printf("Downloaded %s. File size: %d\n", url, len(body_text))
 	return strings.Split(body_text, "\n")
 }
 
@@ -231,9 +229,7 @@ func convert_to_domain_set(domains []string, skip_filter bool, white_list Domain
 
 	// Start workers
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for domain := range ch {
 				processed := convert_to_domain_format(domain)
 				if processed != "" {
@@ -244,7 +240,7 @@ func convert_to_domain_set(domains []string, skip_filter bool, white_list Domain
 					mu.Unlock()
 				}
 			}
-		}()
+		})
 	}
 
 	// Feed domains to workers

@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/cloudflare/cloudflare-go/v4 v4.6.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 )
 
 require (

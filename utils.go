@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/net/idna"
 )
@@ -146,7 +147,7 @@ func download_url(url string) []string {
 	}
 
 	// Add common headers
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36")
 	req.Header.Set("Accept", "text/plain,text/html")
 
 	resp, err := retryableHTTPGet(req)
@@ -204,6 +205,11 @@ func convert_to_domain_format(domain string) string {
 	linex = strings.TrimPrefix(linex, "*.")
 	linex = strings.TrimPrefix(linex, ".")
 	linex = replace_pattern.ReplaceAllString(linex, "")
+	// Upstream lists contain corrupt entries (U+FFFD or invalid UTF-8 bytes) that idna cannot encode.
+	// Skip them silently instead of logging an error.
+	if !utf8.ValidString(linex) || strings.ContainsRune(linex, '\uFFFD') {
+		return ""
+	}
 	// Convert idna
 	domain_x, err := idna.ToASCII(linex)
 	if err != nil {
